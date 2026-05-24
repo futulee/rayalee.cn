@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>2048 贪吃蛇 · 自由移动</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #0a0a1a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none; -webkit-user-select: none;
+  touch-action: none;
+}
+
+canvas { display: block; position: absolute; inset: 0; }
+
+/* HUD */
+.hud {
+  position: fixed; top: max(12px, env(safe-area-inset-top)); left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 12px; z-index: 10; pointer-events: none;
+}
+.hud-item {
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+  border-radius: 12px; padding: 6px 14px; text-align: center;
+  color: #fff; min-width: 60px;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.hud-label { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; }
+.hud-value { font-size: 20px; font-weight: 800; }
+
+/* Restart button */
+.btn-restart {
+  position: fixed; bottom: max(24px, env(safe-area-inset-bottom)); right: 16px;
+  z-index: 10;
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.5);
+  font-size: 22px; cursor: pointer; backdrop-filter: blur(4px);
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-restart:active { transform: scale(0.88); background: rgba(255,255,255,0.15); }
+.btn-pause {
+  position: fixed; bottom: max(80px, calc(env(safe-area-inset-bottom) + 60px)); right: 16px;
+  z-index: 10;
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.5);
+  font-size: 18px; cursor: pointer; backdrop-filter: blur(4px);
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-pause:active { transform: scale(0.88); background: rgba(255,255,255,0.15); }
+
+/* Joystick */
+.joystick-zone {
+  position: fixed; bottom: 0; left: 0; width: 50%; height: 50%;
+  z-index: 5; /* transparent touch zone */
+}
+.joystick-base {
+  position: fixed; bottom: max(60px, calc(env(safe-area-inset-bottom) + 40px));
+  left: max(60px, 16px);
+  width: 100px; height: 100px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.15);
+  pointer-events: none; display: none;
+  transform: translate(-50%, -50%);
+}
+.joystick-thumb {
+  position: absolute; top: 50%; left: 50%;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.25); margin-left: -20px; margin-top: -20px;
+  transition: none;
+}
+
+/* Merge toast */
+.toast {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 36px; font-weight: 900; color: #ffd700; z-index: 20;
+  pointer-events: none; opacity: 0;
+  text-shadow: 0 0 30px rgba(255,215,0,0.8), 0 2px 8px rgba(0,0,0,0.5);
+  transition: none;
+}
+
+@media (min-width: 768px) {
+  .joystick-zone { display: none; }
+  .joystick-base { display: none !important; }
+}
+
+/* Overlay (menu + victory) */
+.overlay {
+  position: fixed; inset: 0; z-index: 30;
+  background: rgba(5,5,20,0.88); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: auto;
+}
+.overlay.hidden { display: none; }
+.overlay-panel {
+  text-align: center; color: #fff; max-width: 380px; padding: 20px;
+}
+.overlay-title { font-size: 36px; font-weight: 900; margin-bottom: 6px; }
+.overlay-sub { font-size: 14px; opacity: 0.6; margin-bottom: 20px; }
+.diff-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin-bottom: 16px;
+}
+.diff-btn {
+  padding: 14px 8px; border-radius: 14px; border: 2px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08); color: #fff; cursor: pointer;
+  font-size: 18px; font-weight: 800; transition: all 0.15s;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.diff-btn:active, .diff-btn:hover { background: rgba(255,255,255,0.18); transform: scale(1.04); }
+.diff-btn .emoji { font-size: 28px; }
+.btn-big {
+  display: inline-block; padding: 14px 36px; border-radius: 14px;
+  border: none; font-size: 18px; font-weight: 800; cursor: pointer;
+  transition: all 0.15s; color: #fff;
+}
+.btn-big:active { transform: scale(0.95); }
+.btn-big.primary { background: linear-gradient(135deg, #FF6347, #FFD93D); }
+.btn-big.secondary { background: rgba(255,255,255,0.15); margin-top: 8px; }
+.victory-msg { font-size: 22px; margin: 12px 0; }
+.victory-emoji { font-size: 64px; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="hud">
+  <div class="hud-item"><span class="hud-label">🎯 目标</span><div class="hud-value" id="target-val">2048</div></div>
+  <div class="hud-item"><span class="hud-label">⭐ 分数</span><div class="hud-value" id="score">0</div></div>
+  <div class="hud-item"><span class="hud-label">📏 蛇长</span><div class="hud-value" id="length">1</div></div>
+  <div class="hud-item"><span class="hud-label">💎 最大</span><div class="hud-value" id="maxval">2</div></div>
+</div>
+
+<button class="btn-restart" id="restart-btn" title="重新开始">🔄</button>
+<button class="btn-pause" id="pause-btn" title="暂停">⏯</button>
+
+<div class="joystick-zone" id="joystick-zone"></div>
+<div class="joystick-base" id="joystick-base"><div class="joystick-thumb" id="joystick-thumb"></div></div>
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="menu-overlay">
+  <div class="overlay-panel">
+    <div class="overlay-title">🐍 2048 贪吃蛇</div>
+    <div class="overlay-sub">选择难度，开始游戏！</div>
+    <div class="overlay-sub" style="font-size:12px;opacity:0.5;margin-bottom:14px">吃掉数字球让蛇变长，蛇身上出现目标数字即获胜 🎯</div>
+    <div class="diff-grid" id="diff-grid">
+      <button class="diff-btn" data-target="32"><span class="emoji">🏎️</span>32</button>
+      <button class="diff-btn" data-target="64"><span class="emoji">🚓</span>64</button>
+      <button class="diff-btn" data-target="128"><span class="emoji">🚒</span>128</button>
+      <button class="diff-btn" data-target="256"><span class="emoji">🚑</span>256</button>
+      <button class="diff-btn" data-target="512"><span class="emoji">🚁</span>512</button>
+      <button class="diff-btn" data-target="1024"><span class="emoji">✈️</span>1024</button>
+      <button class="diff-btn" data-target="2048" style="grid-column:1/-1"><span class="emoji">🚀</span>2048 · 最难</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="victory-overlay">
+  <div class="overlay-panel">
+    <div class="victory-emoji">🎉</div>
+    <div class="overlay-title" id="victory-title">恭喜通关！</div>
+    <div class="victory-msg" id="victory-msg"></div>
+    <button class="btn-big primary" id="victory-replay">🔄 再来一局</button>
+    <button class="btn-big secondary" id="victory-menu">🏠 选择难度</button>
+  </div>
+</div>
+
+<script>
+// Force-update service worker (busts WeChat cache)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/games/sw.js').catch(() => {});
+}
+// ============================
+// CONFIG
+// ============================
+const WORLD_W = 3000, WORLD_H = 3000;
+const SNAKE_SPEED = 220;        // px/s
+const TURN_RATE = 5.5;          // rad/s
+const SEGMENT_SPACING = 28;     // px between body segments (scales with segment size)
+const HEAD_RADIUS = 20;
+const BODY_RADIUS = 14;
+const FOOD_RADIUS = 18;
+
+function headRadius(v) { return HEAD_RADIUS + Math.log2(Math.max(2, v)) * 2.5; }
+function bodyRadius(v) { return BODY_RADIUS + Math.log2(Math.max(2, v)) * 2.2; }
+function foodRadius(v) { return FOOD_RADIUS + Math.log2(Math.max(2, v)) * 2; }
+const OBSTACLE_COUNT = 45;
+const FOOD_COUNT = 30;
+
+// ============================
+// THEMES
+// ============================
+const TILES = {
+  2:{e:'🚲',bg:'#FFD93D',fg:'#5c4700'},4:{e:'🛴',bg:'#6BCB77',fg:'#1a3d1a'},
+  8:{e:'🚗',bg:'#4D96FF',fg:'#fff'},16:{e:'🚙',bg:'#FF6B6B',fg:'#fff'},
+  32:{e:'🏎️',bg:'#C9B1FF',fg:'#2d1545'},64:{e:'🚓',bg:'#4ECDC4',fg:'#fff'},
+  128:{e:'🚒',bg:'#FF8B94',fg:'#fff'},256:{e:'🚑',bg:'#A8E6CF',fg:'#1a3d1a'},
+  512:{e:'🚁',bg:'#FFD3B6',fg:'#5c3500'},1024:{e:'✈️',bg:'#DDA0DD',fg:'#fff'},
+  2048:{e:'🚀',bg:'#FF6347',fg:'#fff'},4096:{e:'🛸',bg:'#2c003f',fg:'#f9f6f2'},
+  super:{e:'🌌',bg:'#0d0221',fg:'#ffd700'}
+};
+
+function tileStyle(v) { return TILES[v] || TILES.super; }
+
+// ============================
+// AUDIO
+// ============================
+const AudioCtx = {
+  ctx: null,
+  init() {
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      return;
+    }
+    try {
+      this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+    } catch(e) {}
+  },
+  beep(freq, dur, vol=0.08, type='sine') {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+    o.connect(g).connect(this.ctx.destination); o.start(t); o.stop(t+dur);
+  },
+  eat(v) { this.beep(400 + Math.log2(v) * 70, 0.1, 0.08); },
+  merge(v) {
+    const t = this.ctx?.currentTime; if (!t) return;
+    this.beep(280 + Math.log2(v) * 50, 0.15, 0.09);
+    setTimeout(() => this.beep(420 + Math.log2(v) * 55, 0.12, 0.08), 60);
+  },
+  celebrate(v) {
+    if (!this.ctx) return;
+    const base = 440 + Math.log2(v) * 30;
+    // Rising fanfare
+    [0, 0.08, 0.16, 0.24, 0.35].forEach((delay, i) => {
+      setTimeout(() => {
+        this.beep(base + i * 120, 0.22, 0.1, 'triangle');
+        this.beep(base + i * 120 + 15, 0.18, 0.07, 'sine');
+      }, delay * 1000);
+    });
+  },
+  applause() {
+    if (!this.ctx) return;
+    for (let i = 0; i < 20; i++) {
+      setTimeout(() => this.beep(800 + Math.random() * 600, 0.04, 0.04, 'square'), i * 60 + Math.random() * 40);
+    }
+    setTimeout(() => {
+      [523, 659, 784, 1047].forEach((f, i) => {
+        setTimeout(() => this.beep(f, 0.3, 0.1, 'triangle'), i * 120);
+      });
+    }, 1400);
+  },
+};
+
+// ============================
+// GAME STATE
+// ============================
+const state = {
+  head: { x: WORLD_W/2, y: WORLD_H/2, angle: 0 },
+  body: [2],          // values of body segments (index 0 = head value)
+  pathHistory: [],    // [{x,y}] head trail, newest at end
+  foods: [],
+  obstacles: [],
+  particles: [],
+  mergeFx: [],
+  score: 0,
+  bestScore: 0,
+  inputDir: { x: 1, y: 0 },
+  camera: { x: 0, y: 0 },
+  time: 0,
+  foodEaten: 0,
+  paused: false,
+  stumbleTimer: 0,
+  boostTimer: 0,
+  celebrated: new Set(),
+  phase: 'menu',     // 'menu' | 'playing' | 'victory'
+  target: 2048,
+  victoryTimer: 0,
+  winningIndex: -1,
+
+  init() {
+    const bs = localStorage.getItem('snake2048freemove_best');
+    if (bs) this.bestScore = parseInt(bs, 10) || 0;
+    this.head = { x: WORLD_W/2, y: WORLD_H/2, angle: Math.random() * Math.PI * 2 };
+    this.body = [2];
+    this.pathHistory = [{ x: this.head.x, y: this.head.y }];
+    this.score = 0;
+    this.inputDir = { x: 1, y: 0 };
+    this.particles = [];
+    this.mergeFx = [];
+    this.paused = false;
+    this.celebrated = new Set();
+    this.foodEaten = 0;
+    this.phase = 'menu';
+    this.genObstacles();
+    this.genFoods();
+    this.updateHUD();
+    document.getElementById('menu-overlay').classList.remove('hidden');
+    document.getElementById('victory-overlay').classList.add('hidden');
+    document.getElementById('pause-btn').textContent = '⏯';
+  },
+
+  genObstacles() {
+    this.obstacles = [];
+    const animals = ['🦖','🦕','🐅','🦁','🐘','🕷️','🦂','🐍','🦇','🦉','🐊','🦈','🦍','🐻','🦏','🐲','🦀','🐜','🪨','🌵'];
+    const margin = 200;
+    // Place reward obstacles first (5 ⚡ speed boosts)
+    const rewardCount = 5;
+    for (let i = 0; i < OBSTACLE_COUNT; i++) {
+      const isReward = i < rewardCount;
+      let x, y, r, ok;
+      let tries = 0;
+      do {
+        x = margin + Math.random() * (WORLD_W - margin * 2);
+        y = margin + Math.random() * (WORLD_H - margin * 2);
+        r = isReward ? 32 + Math.random() * 15 : (
+          ['🐘','🦍','🐻','🦏'].includes(animals[i % animals.length]) ? 50 + Math.random() * 25 :
+          ['🦖','🦕','🐲','🦈','🐊'].includes(animals[i % animals.length]) ? 40 + Math.random() * 20 :
+          ['🐅','🦁'].includes(animals[i % animals.length]) ? 35 + Math.random() * 18 :
+          28 + Math.random() * 20
+        );
+        ok = true;
+        const dx = x - WORLD_W/2, dy = y - WORLD_H/2;
+        if (Math.sqrt(dx*dx+dy*dy) < 220) ok = false;
+        for (const ob of this.obstacles) {
+          const d = Math.hypot(x - ob.x, y - ob.y);
+          if (d < r + ob.r + 30) { ok = false; break; }
+        }
+        tries++;
+      } while (!ok && tries < 100);
+      if (ok) this.obstacles.push({
+        x, y, r,
+        emoji: isReward ? '⚡' : animals[i % animals.length],
+        reward: isReward
+      });
+    }
+  },
+
+  genFoods() {
+    this.foods = [];
+    for (let i = 0; i < FOOD_COUNT; i++) this.spawnOneFood();
+  },
+
+  spawnOneFood() {
+    let x, y, ok;
+    let tries = 0;
+    const margin = 50;
+    do {
+      x = margin + Math.random() * (WORLD_W - margin * 2);
+      y = margin + Math.random() * (WORLD_H - margin * 2);
+      ok = true;
+      for (const ob of this.obstacles) {
+        if (Math.hypot(x - ob.x, y - ob.y) < ob.r + FOOD_RADIUS + 8) { ok = false; break; }
+      }
+      // Don't spawn too close to head
+      if (Math.hypot(x - this.head.x, y - this.head.y) < 80) ok = false;
+      tries++;
+    } while (!ok && tries < 100);
+    if (!ok) return;
+
+    const r = Math.random();
+    let v = 2;
+    if (r < 0.55) v = 2;
+    else if (r < 0.80) v = 4;
+    else if (r < 0.93) v = 8;
+    else if (r < 0.98) v = 16;
+    else v = 32;
+
+    this.foods.push({ x, y, value: v });
+  },
+
+  updateHUD() {
+    document.getElementById('target-val').textContent = this.target;
+    document.getElementById('score').textContent = this.score;
+    document.getElementById('length').textContent = this.body.length;
+    document.getElementById('maxval').textContent = Math.max(...this.body);
+    if (this.score > this.bestScore) {
+      this.bestScore = this.score;
+      localStorage.setItem('snake2048freemove_best', this.bestScore);
+    }
+  },
+
+  startGame(targetVal) {
+    this.target = targetVal;
+    this.head = { x: WORLD_W/2, y: WORLD_H/2, angle: Math.random() * Math.PI * 2 };
+    this.body = [2];
+    this.pathHistory = [{ x: this.head.x, y: this.head.y }];
+    this.score = 0;
+    this.inputDir = { x: 1, y: 0 };
+    this.particles = [];
+    this.mergeFx = [];
+    this.paused = false;
+    this.stumbleTimer = 0;
+    this.boostTimer = 0;
+    this.winningIndex = -1;
+    this.celebrated = new Set();
+    this.foodEaten = 0;
+    this.genObstacles();
+    this.genFoods();
+    this.phase = 'playing';
+    this.updateHUD();
+    document.getElementById('menu-overlay').classList.add('hidden');
+    document.getElementById('victory-overlay').classList.add('hidden');
+    document.getElementById('pause-btn').textContent = '⏯';
+  },
+
+  win() {
+    this.phase = 'victory';
+    this.victoryTimer = 3; // 3s flash before overlay
+    this.winningIndex = this.body.findIndex(v => v >= this.target);
+    const emoji = tileStyle(this.target).e;
+    document.getElementById('victory-msg').textContent =
+      `成功累积到 ${emoji} ${this.target}！\n得分：${this.score} | 蛇长：${this.body.length}`;
+    spawnVictoryFireworks(this.head.x, this.head.y);
+    AudioCtx.applause();
+  },
+
+  restart() {
+    this.init();
+  }
+};
+
+// ============================
+// PHYSICS & COLLISION
+// ============================
+function update(dt) {
+  if (state.phase === 'victory') {
+    if (state.victoryTimer > 0) {
+      state.victoryTimer -= dt;
+      if (state.victoryTimer <= 0) {
+        document.getElementById('victory-overlay').classList.remove('hidden');
+      }
+    }
+    return;
+  }
+  if (state.phase !== 'playing' || state.paused) return;
+  const clampedDt = Math.min(dt, 0.05);
+  state.time += clampedDt;
+  if (state.stumbleTimer > 0) state.stumbleTimer -= clampedDt;
+  if (state.boostTimer > 0) state.boostTimer -= clampedDt;
+
+  // Smooth turning toward input direction
+  const targetAngle = Math.atan2(state.inputDir.y, state.inputDir.x);
+  let diff = targetAngle - state.head.angle;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  const turn = Math.sign(diff) * Math.min(Math.abs(diff), TURN_RATE * clampedDt);
+  state.head.angle += turn;
+  while (state.head.angle > Math.PI) state.head.angle -= Math.PI * 2;
+  while (state.head.angle < -Math.PI) state.head.angle += Math.PI * 2;
+
+  // Move head (with stumble slowdown / boost)
+  const stumbleFactor = state.stumbleTimer > 0 ? 0.25 : 1;
+  const boostFactor = state.boostTimer > 0 ? 1.8 : 1;
+  const speed = SNAKE_SPEED * stumbleFactor * boostFactor;
+  const vx = Math.cos(state.head.angle) * speed * clampedDt;
+  const vy = Math.sin(state.head.angle) * speed * clampedDt;
+  state.head.x += vx;
+  state.head.y += vy;
+
+  // --- Collision: world bounds (bounce) ---
+  const hR = headRadius(state.body[0]);
+  const bMargin = hR;
+  if (state.head.x < bMargin) {
+    state.head.x = bMargin;
+    state.head.angle = Math.PI - state.head.angle;
+    spawnBounceParticles(state.head.x, state.head.y);
+  }
+  if (state.head.x > WORLD_W - bMargin) {
+    state.head.x = WORLD_W - bMargin;
+    state.head.angle = Math.PI - state.head.angle;
+    spawnBounceParticles(state.head.x, state.head.y);
+  }
+  if (state.head.y < bMargin) {
+    state.head.y = bMargin;
+    state.head.angle = -state.head.angle;
+    spawnBounceParticles(state.head.x, state.head.y);
+  }
+  if (state.head.y > WORLD_H - bMargin) {
+    state.head.y = WORLD_H - bMargin;
+    state.head.angle = -state.head.angle;
+    spawnBounceParticles(state.head.x, state.head.y);
+  }
+
+  // --- Collision: obstacles (push out + slide) ---
+  let hitRewardIdx = -1, hitRewardX, hitRewardY;
+  for (let oi = state.obstacles.length - 1; oi >= 0; oi--) {
+    const ob = state.obstacles[oi];
+    const dx = state.head.x - ob.x;
+    const dy = state.head.y - ob.y;
+    const dist = Math.hypot(dx, dy);
+    const minDist = ob.r + hR;
+    if (dist < minDist && dist > 0.001) {
+      const nx = dx / dist, ny = dy / dist;
+      if (ob.reward) {
+        state.boostTimer = 3.5;
+        state.head.x = ob.x + nx * minDist;
+        state.head.y = ob.y + ny * minDist;
+        hitRewardIdx = oi;
+        hitRewardX = state.head.x;
+        hitRewardY = state.head.y;
+        break;
+      } else {
+        state.head.x = ob.x + nx * minDist;
+        state.head.y = ob.y + ny * minDist;
+        const dot = Math.cos(state.head.angle) * nx + Math.sin(state.head.angle) * ny;
+        const rx = Math.cos(state.head.angle) - 2 * dot * nx;
+        const ry = Math.sin(state.head.angle) - 2 * dot * ny;
+        state.head.angle = Math.atan2(ry, rx);
+        state.stumbleTimer = 0.35;
+        ob.hitFlash = 0.4;
+        spawnBounceParticles(state.head.x, state.head.y);
+        break; // only handle one obstacle collision per frame
+      }
+    }
+  }
+  if (hitRewardIdx >= 0) {
+    state.obstacles.splice(hitRewardIdx, 1);
+    spawnBoostParticles(hitRewardX, hitRewardY);
+    showToastMsg('⚡ 加速 3秒！');
+    AudioCtx.celebrate(64);
+  }
+
+  // Record path
+  state.pathHistory.push({ x: state.head.x, y: state.head.y });
+  // Trim path: keep enough for all body segments
+  const maxLen = state.body.length * SEGMENT_SPACING + 80;
+  while (state.pathHistory.length > 2) {
+    const a = state.pathHistory[0], b = state.pathHistory[1];
+    const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+    let total = 0;
+    for (let i = 0; i < state.pathHistory.length - 1; i++) {
+      total += Math.hypot(state.pathHistory[i+1].x - state.pathHistory[i].x, state.pathHistory[i+1].y - state.pathHistory[i].y);
+    }
+    if (total > maxLen) state.pathHistory.shift();
+    else break;
+  }
+
+  // --- Collision: food ---
+  for (let i = state.foods.length - 1; i >= 0; i--) {
+    const f = state.foods[i];
+    const dist = Math.hypot(state.head.x - f.x, state.head.y - f.y);
+    if (dist < hR + foodRadius(f.value)) {
+      // Eat!
+      state.body.push(f.value);
+      spawnEatParticles(f.x, f.y, f.value);
+      AudioCtx.eat(f.value);
+      state.foods.splice(i, 1);
+      state.foodEaten++;
+      state.score += f.value;
+      // Trigger merge check
+      doMerge();
+      // Spawn replacement
+      state.spawnOneFood();
+    }
+  }
+
+  // Update merge effects
+  for (let i = state.mergeFx.length - 1; i >= 0; i--) {
+    state.mergeFx[i].age += clampedDt;
+    if (state.mergeFx[i].age > state.mergeFx[i].maxAge) state.mergeFx.splice(i, 1);
+  }
+
+  // Update particles
+  for (let i = state.particles.length - 1; i >= 0; i--) {
+    const p = state.particles[i];
+    p.x += p.vx * clampedDt;
+    p.y += p.vy * clampedDt;
+    p.life -= clampedDt;
+    if (p.life <= 0) state.particles.splice(i, 1);
+  }
+
+  // Smooth camera
+  state.camera.x += (state.head.x - state.camera.x) * 6 * clampedDt;
+  state.camera.y += (state.head.y - state.camera.y) * 6 * clampedDt;
+}
+
+// ============================
+// MERGE
+// ============================
+function doMerge() {
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = state.body.length - 1; i > 0; i--) {
+      if (state.body[i] === state.body[i - 1]) {
+        const newVal = state.body[i - 1] * 2;
+        state.body[i - 1] = newVal;
+        state.body.splice(i, 1);
+        state.score += newVal;
+        // Add merge effect at approximate position of segment i-1
+        const pos = getSegmentWorldPos(i - 1);
+        if (pos) {
+          state.mergeFx.push({ x: pos.x, y: pos.y, value: newVal, age: 0, maxAge: 0.6 });
+          spawnMergeParticles(pos.x, pos.y, newVal);
+        }
+        AudioCtx.merge(newVal);
+        // Win check
+        if (newVal >= state.target && state.phase === 'playing') {
+          state.win();
+          return;
+        }
+        // Milestone celebration
+        if (newVal >= 32 && newVal % 32 === 0 && (newVal & (newVal - 1)) === 0) {
+          if (!state.celebrated.has(newVal)) {
+            state.celebrated.add(newVal);
+            showToast(newVal);
+            spawnFireworks(pos.x, pos.y, newVal);
+            AudioCtx.celebrate(newVal);
+          }
+        }
+        changed = true;
+        break;
+      }
+    }
+  }
+  state.updateHUD();
+}
+
+// ============================
+// PARTICLES
+// ============================
+function spawnEatParticles(x, y, v) {
+  const s = tileStyle(v);
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 80 + Math.random() * 180;
+    state.particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      size: 3 + Math.random() * 5,
+      color: s.bg, life: 0.3 + Math.random() * 0.4
+    });
+  }
+}
+
+function spawnMergeParticles(x, y, v) {
+  const s = tileStyle(v);
+  for (let i = 0; i < 22; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 100 + Math.random() * 250;
+    state.particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      size: 4 + Math.random() * 7,
+      color: s.bg, life: 0.4 + Math.random() * 0.6
+    });
+  }
+}
+
+function spawnBoostParticles(x, y) {
+  for (let i = 0; i < 20; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 120 + Math.random() * 250;
+    state.particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      size: 3 + Math.random() * 5,
+      color: '#ffd700', life: 0.4 + Math.random() * 0.5
+    });
+  }
+}
+
+function spawnBounceParticles(x, y) {
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 50 + Math.random() * 100;
+    state.particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      size: 2 + Math.random() * 3,
+      color: '#ffffff', life: 0.15 + Math.random() * 0.2
+    });
+  }
+}
+
+function spawnFireworks(x, y, v) {
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff8b94','#ffd700','#ff6347','#00ff88','#ff69b4','#7b68ee'];
+  for (let ring = 0; ring < 3; ring++) {
+    const count = 12 + ring * 8;
+    const speedBase = 100 + ring * 60;
+    setTimeout(() => {
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2 + Math.random() * 0.2;
+        const speed = speedBase + Math.random() * 120;
+        state.particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+          size: 3 + Math.random() * 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 0.6 + Math.random() * 0.7
+        });
+      }
+    }, ring * 80);
+  }
+}
+
+function spawnVictoryFireworks(x, y) {
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff8b94','#ffd700','#ff6347','#00ff88','#ff69b4','#7b68ee','#ffffff'];
+  for (let ring = 0; ring < 8; ring++) {
+    setTimeout(() => {
+      const cx = x + (Math.random() - 0.5) * 400;
+      const cy = y + (Math.random() - 0.5) * 400;
+      for (let i = 0; i < 30; i++) {
+        const angle = (i / 30) * Math.PI * 2;
+        const speed = 150 + Math.random() * 300;
+        state.particles.push({
+          x: cx, y: cy,
+          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+          size: 4 + Math.random() * 8,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 0.8 + Math.random() * 1.2
+        });
+      }
+    }, ring * 200);
+  }
+}
+
+function showToastMsg(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translate(-50%, -50%) scale(1.2)';
+  t.style.transition = 'none';
+  requestAnimationFrame(() => {
+    t.style.transition = 'all 0.6s ease-out';
+    t.style.opacity = '0';
+    t.style.transform = 'translate(-50%, -50%) scale(1) translateY(-24px)';
+  });
+}
+
+function showToast(v) {
+  const t = document.getElementById('toast');
+  t.textContent = '✨ ' + v + ' ✨';
+  t.style.opacity = '1';
+  t.style.transform = 'translate(-50%, -50%) scale(1.3)';
+  t.style.transition = 'none';
+  requestAnimationFrame(() => {
+    t.style.transition = 'all 0.5s ease-out';
+    t.style.opacity = '0';
+    t.style.transform = 'translate(-50%, -50%) scale(1) translateY(-30px)';
+  });
+}
+
+// ============================
+// BODY POSITIONS
+// ============================
+function getSegmentWorldPos(index) {
+  // index 0 = head, index 1+ = body segments
+  if (index === 0) return { x: state.head.x, y: state.head.y };
+  const targetDist = index * SEGMENT_SPACING;
+  let accumulated = 0;
+  const ph = state.pathHistory;
+  for (let j = ph.length - 1; j > 0; j--) {
+    const dx = ph[j].x - ph[j-1].x;
+    const dy = ph[j].y - ph[j-1].y;
+    const segLen = Math.hypot(dx, dy);
+    if (accumulated + segLen >= targetDist) {
+      const t = segLen > 0.001 ? (targetDist - accumulated) / segLen : 0;
+      return {
+        x: ph[j].x - dx * t,
+        y: ph[j].y - dy * t
+      };
+    }
+    accumulated += segLen;
+  }
+  return ph[0] ? { x: ph[0].x, y: ph[0].y } : { x: state.head.x, y: state.head.y };
+}
+
+// ============================
+// RENDER
+// ============================
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function worldToScreen(wx, wy) {
+  return {
+    x: wx - state.camera.x + canvas.width / 2,
+    y: wy - state.camera.y + canvas.height / 2
+  };
+}
+
+function render(now) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background gradient
+  const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width*0.8);
+  grad.addColorStop(0, '#1a1a2e');
+  grad.addColorStop(1, '#0a0a1a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Grid
+  const gridSize = 60;
+  const camX = state.camera.x, camY = state.camera.y;
+  const startX = -(camX % gridSize) + canvas.width/2 % gridSize;
+  const startY = -(camY % gridSize) + canvas.height/2 % gridSize;
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = startX; x < canvas.width + gridSize; x += gridSize) {
+    if (x < 0 || x > canvas.width) continue;
+    ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+  }
+  for (let y = startY; y < canvas.height + gridSize; y += gridSize) {
+    if (y < 0 || y > canvas.height) continue;
+    ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
+  }
+  ctx.stroke();
+
+  // World boundary (rendered as subtle border)
+  const tl = worldToScreen(0, 0);
+  const br = worldToScreen(WORLD_W, WORLD_H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+
+  // Obstacles
+  for (const ob of state.obstacles) {
+    const s = worldToScreen(ob.x, ob.y);
+    if (s.x < -ob.r - 60 || s.x > canvas.width + ob.r + 60 || s.y < -ob.r - 60 || s.y > canvas.height + ob.r + 60) continue;
+
+    // Hit flash
+    if (ob.hitFlash > 0) {
+      ob.hitFlash -= 0.016;
+      if (ob.hitFlash < 0) ob.hitFlash = 0;
+    }
+
+    // Reward glow
+    if (ob.reward) {
+      const glowPulse = 1 + Math.sin(state.time * 5 + ob.x * 0.01) * 0.15;
+      const glowGrad = ctx.createRadialGradient(s.x, s.y, ob.r * 0.3, s.x, s.y, ob.r * 1.8 * glowPulse);
+      glowGrad.addColorStop(0, 'rgba(255,215,0,0.35)');
+      glowGrad.addColorStop(0.5, 'rgba(255,180,0,0.12)');
+      glowGrad.addColorStop(1, 'rgba(255,215,0,0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath(); ctx.arc(s.x, s.y, ob.r * 1.8 * glowPulse, 0, Math.PI * 2); ctx.fill();
+
+      // Sparkles
+      for (let j = 0; j < 3; j++) {
+        const sa = state.time * 3 + j * 2.1 + ob.x * 0.02;
+        const sr = ob.r * (0.6 + Math.sin(sa * 1.7) * 0.4);
+        const sx = s.x + Math.cos(sa) * sr;
+        const sy = s.y + Math.sin(sa * 1.3) * sr * 0.6;
+        ctx.fillStyle = 'rgba(255,255,200,0.7)';
+        ctx.beginPath(); ctx.arc(sx, sy, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(s.x + 3, s.y + ob.r * 0.65, ob.r * 0.55, ob.r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Emoji
+    const shakeX = ob.hitFlash > 0 ? (Math.random() - 0.5) * ob.r * 0.4 : 0;
+    const shakeY = ob.hitFlash > 0 ? (Math.random() - 0.5) * ob.r * 0.4 : 0;
+    const flashScale = 1 + (ob.hitFlash > 0 ? ob.hitFlash * 0.5 : 0);
+    const rewardScale = ob.reward ? (1 + Math.sin(state.time * 4 + ob.x * 0.01) * 0.08) : 1;
+    const fontSize = ob.r * 1.6 * flashScale * rewardScale;
+    ctx.font = `${fontSize}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(ob.emoji, s.x + shakeX, s.y + shakeY);
+  }
+
+  // Food orbs
+  for (const f of state.foods) {
+    const s = worldToScreen(f.x, f.y);
+    if (s.x < -50 || s.x > canvas.width + 50 || s.y < -50 || s.y > canvas.height + 50) continue;
+    const style = tileStyle(f.value);
+    const pulse = 1 + Math.sin(state.time * 4 + f.x * 0.01) * 0.08;
+    const fr = foodRadius(f.value) * pulse;
+
+    // Glow
+    const glow = ctx.createRadialGradient(s.x, s.y, fr*0.3, s.x, s.y, fr*2);
+    glow.addColorStop(0, style.bg);
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(s.x, s.y, fr*2, 0, Math.PI*2); ctx.fill();
+
+    // Orb body
+    ctx.fillStyle = style.bg;
+    ctx.beginPath(); ctx.arc(s.x, s.y, fr, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Number or emoji
+    const fs = fr * (String(f.value).length > 2 ? 0.7 : 1.0);
+    ctx.fillStyle = style.fg;
+    ctx.font = `bold ${fs}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (style.e) {
+      ctx.font = `${fr*1.2}px -apple-system, sans-serif`;
+      ctx.fillText(style.e, s.x, s.y);
+    }
+    ctx.font = `bold ${fs}px -apple-system, sans-serif`;
+    ctx.fillText(f.value, s.x, style.e ? s.y + fr*0.6 : s.y);
+  }
+
+  // Snake body — PASS 1: circles (tail→head so head is on top)
+  for (let i = state.body.length - 1; i >= 0; i--) {
+    const pos = getSegmentWorldPos(i);
+    const s = worldToScreen(pos.x, pos.y);
+    if (s.x < -60 || s.x > canvas.width + 60 || s.y < -60 || s.y > canvas.height + 60) continue;
+
+    const value = state.body[i];
+    const style = tileStyle(value);
+    const radius = i === 0 ? headRadius(value) : bodyRadius(value);
+
+    if (i === 0) {
+      // Boost trail
+      if (state.boostTimer > 0) {
+        for (let t = 1; t <= 4; t++) {
+          const tx = s.x - Math.cos(state.head.angle) * radius * t * 1.2;
+          const ty = s.y - Math.sin(state.head.angle) * radius * t * 1.2;
+          const alpha = 0.3 - t * 0.07;
+          ctx.fillStyle = `rgba(255,215,0,${Math.max(0, alpha)})`;
+          ctx.beginPath(); ctx.arc(tx, ty, radius * (0.6 - t * 0.1), 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      // HEAD glow + circle + eyes
+      const glowColor = state.boostTimer > 0 ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.2)';
+      const glowGrad = ctx.createRadialGradient(s.x, s.y, radius*0.2, s.x, s.y, radius*2.5);
+      glowGrad.addColorStop(0, glowColor);
+      glowGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath(); ctx.arc(s.x, s.y, radius*2.5, 0, Math.PI*2); ctx.fill();
+
+      ctx.fillStyle = style.bg;
+      ctx.beginPath(); ctx.arc(s.x, s.y, radius, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Eyes
+      const eyeOffX = Math.cos(state.head.angle) * radius * 0.3;
+      const eyeOffY = Math.sin(state.head.angle) * radius * 0.3;
+      const perpX = -Math.sin(state.head.angle) * radius * 0.45;
+      const perpY = Math.cos(state.head.angle) * radius * 0.45;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(s.x + eyeOffX + perpX, s.y + eyeOffY + perpY, radius*0.38, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.arc(s.x + eyeOffX + perpX + Math.cos(state.head.angle)*2, s.y + eyeOffY + perpY + Math.sin(state.head.angle)*2, radius*0.2, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(s.x + eyeOffX - perpX, s.y + eyeOffY - perpY, radius*0.38, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.arc(s.x + eyeOffX - perpX + Math.cos(state.head.angle)*2, s.y + eyeOffY - perpY + Math.sin(state.head.angle)*2, radius*0.2, 0, Math.PI*2); ctx.fill();
+    } else {
+      // BODY circle only (no number yet)
+      ctx.fillStyle = style.bg;
+      ctx.beginPath(); ctx.arc(s.x, s.y, radius, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  }
+
+  // Snake body — PASS 2: numbers (drawn on top, not covered by overlapping segments)
+  for (let i = 0; i < state.body.length; i++) {
+    if (state.winningIndex >= 0 && i === state.winningIndex) continue; // drawn in PASS 3
+    const pos = getSegmentWorldPos(i);
+    const s = worldToScreen(pos.x, pos.y);
+    if (s.x < -60 || s.x > canvas.width + 60 || s.y < -60 || s.y > canvas.height + 60) continue;
+
+    const value = state.body[i];
+    const style = tileStyle(value);
+    const radius = i === 0 ? headRadius(value) : bodyRadius(value);
+
+    if (i === 0) {
+      // Number at back of head (opposite to movement direction)
+      const backX = s.x - Math.cos(state.head.angle) * radius * 0.4;
+      const backY = s.y - Math.sin(state.head.angle) * radius * 0.4;
+      ctx.fillStyle = style.fg;
+      ctx.font = `bold ${radius*0.5}px -apple-system, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(value, backX, backY);
+    } else {
+      const fs = radius * (String(value).length > 2 ? 0.6 : 0.8);
+      ctx.fillStyle = style.fg;
+      ctx.font = `bold ${fs}px -apple-system, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(value, s.x, s.y + 0.5);
+    }
+  }
+
+  // PASS 3: winning segment flash (on top of everything)
+  if (state.winningIndex >= 0 && state.winningIndex < state.body.length) {
+    const pos = getSegmentWorldPos(state.winningIndex);
+    const s = worldToScreen(pos.x, pos.y);
+    const value = state.body[state.winningIndex];
+    const style = tileStyle(value);
+    const radius = bodyRadius(value);
+    const flash = 0.5 + Math.sin(state.time * 12) * 0.5;
+    // Big glow
+    const wGlow = ctx.createRadialGradient(s.x, s.y, radius*0.3, s.x, s.y, radius*3.5);
+    wGlow.addColorStop(0, `rgba(255,215,0,${0.7*flash})`);
+    wGlow.addColorStop(0.4, `rgba(255,180,0,${0.3*flash})`);
+    wGlow.addColorStop(1, 'rgba(255,215,0,0)');
+    ctx.fillStyle = wGlow;
+    ctx.beginPath(); ctx.arc(s.x, s.y, radius*3.5, 0, Math.PI*2); ctx.fill();
+    // Pulsing circle
+    const scale = 1 + flash * 0.3;
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = style.bg;
+    ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = `rgba(255,215,0,${0.6 + flash*0.4})`;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.restore();
+    // Dark disc behind number for visibility
+    const fs = radius * 0.85;
+    ctx.font = `900 ${fs}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath(); ctx.arc(s.x, s.y, radius * 0.65, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillText(value, s.x, s.y);
+  }
+
+  // Merge effects
+  for (const fx of state.mergeFx) {
+    const s = worldToScreen(fx.x, fx.y);
+    const t = fx.age / fx.maxAge;
+    const scale = 1 + t * 1.5;
+    const alpha = 1 - t;
+    const style = tileStyle(fx.value);
+    ctx.fillStyle = style.bg.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
+    if (style.bg.startsWith('#')) {
+      // Convert hex to rgba
+      const hex = style.bg;
+      const rr = parseInt(hex.slice(1,3), 16), gg = parseInt(hex.slice(3,5), 16), bb = parseInt(hex.slice(5,7), 16);
+      ctx.fillStyle = `rgba(${rr},${gg},${bb},${alpha})`;
+    }
+    ctx.font = `bold ${24*scale}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('+' + fx.value, s.x, s.y - t * 40);
+  }
+
+  // Particles
+  for (const p of state.particles) {
+    const s = worldToScreen(p.x, p.y);
+    const alpha = Math.max(0, p.life / 0.6);
+    ctx.fillStyle = p.color.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
+    if (p.color.startsWith('#')) {
+      const rr = parseInt(p.color.slice(1,3),16), gg = parseInt(p.color.slice(3,5),16), bb = parseInt(p.color.slice(5,7),16);
+      ctx.fillStyle = `rgba(${rr},${gg},${bb},${alpha})`;
+    }
+    // Handle hsl colors
+    if (p.color.startsWith('hsl')) {
+      ctx.fillStyle = p.color.replace('hsl', 'hsla').replace(')', `, ${alpha})`);
+    }
+    ctx.beginPath(); ctx.arc(s.x, s.y, p.size, 0, Math.PI*2); ctx.fill();
+  }
+
+  state.updateHUD();
+}
+
+// ============================
+// INPUT
+// ============================
+const keys = {};
+document.addEventListener('keydown', e => {
+  AudioCtx.init();
+  if (state.phase !== 'playing') return;
+  if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
+    e.preventDefault();
+    togglePause();
+    return;
+  }
+  keys[e.key] = true;
+  updateInputDir();
+});
+document.addEventListener('keyup', e => {
+  keys[e.key] = false;
+  updateInputDir();
+});
+
+function updateInputDir() {
+  let dx = 0, dy = 0;
+  if (keys['ArrowLeft'] || keys['a'] || keys['A']) dx -= 1;
+  if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += 1;
+  if (keys['ArrowUp'] || keys['w'] || keys['W']) dy -= 1;
+  if (keys['ArrowDown'] || keys['s'] || keys['S']) dy += 1;
+  if (dx !== 0 || dy !== 0) {
+    const len = Math.hypot(dx, dy);
+    state.inputDir = { x: dx / len, y: dy / len };
+    AudioCtx.init();
+  }
+  // If no key pressed, keep current dir (coast)
+}
+
+// Joystick
+const joystickZone = document.getElementById('joystick-zone');
+const joystickBase = document.getElementById('joystick-base');
+const joystickThumb = document.getElementById('joystick-thumb');
+let joystickId = null;
+let joystickCenter = { x: 0, y: 0 };
+
+joystickZone.addEventListener('touchstart', (e) => {
+  if (state.phase !== 'playing') return;
+  for (const t of e.changedTouches) {
+    if (joystickId === null) {
+      joystickId = t.identifier;
+      joystickCenter = { x: t.clientX, y: t.clientY };
+      joystickBase.style.display = 'block';
+      joystickBase.style.left = t.clientX + 'px';
+      joystickBase.style.top = t.clientY + 'px';
+      joystickThumb.style.left = '50%';
+      joystickThumb.style.top = '50%';
+      AudioCtx.init();
+      e.preventDefault();
+    }
+  }
+}, { passive: false });
+
+joystickZone.addEventListener('touchmove', (e) => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joystickId) {
+      const dx = t.clientX - joystickCenter.x;
+      const dy = t.clientY - joystickCenter.y;
+      const dist = Math.hypot(dx, dy);
+      const maxDist = 45;
+      const clampedDist = Math.min(dist, maxDist);
+      const nx = dist > 0.001 ? dx / dist : 0;
+      const ny = dist > 0.001 ? dy / dist : 0;
+      joystickThumb.style.left = (50 + nx * clampedDist / 100 * 100) + '%';
+      joystickThumb.style.top = (50 + ny * clampedDist / 100 * 100) + '%';
+      if (dist > 8) {
+        state.inputDir = { x: nx, y: ny };
+      }
+      e.preventDefault();
+    }
+  }
+}, { passive: false });
+
+joystickZone.addEventListener('touchend', (e) => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joystickId) {
+      joystickId = null;
+      joystickBase.style.display = 'none';
+      // Keep current direction (coast), no input change
+    }
+  }
+});
+joystickZone.addEventListener('touchcancel', () => {
+  joystickId = null;
+  joystickBase.style.display = 'none';
+});
+
+// Canvas touch steering (for iPad / direct touch)
+let canvasTouchId = null;
+canvas.addEventListener('touchstart', e => {
+  AudioCtx.init(); e.preventDefault();
+  if (state.phase !== 'playing') return;
+  for (const t of e.changedTouches) {
+    if (canvasTouchId === null) {
+      canvasTouchId = t.identifier;
+      // Immediately steer toward touch
+      steerToward(t.clientX, t.clientY);
+    }
+  }
+});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (state.phase !== 'playing') return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === canvasTouchId) {
+      steerToward(t.clientX, t.clientY);
+    }
+  }
+});
+canvas.addEventListener('touchend', e => {
+  if (state.phase !== 'playing') return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === canvasTouchId) canvasTouchId = null;
+  }
+});
+canvas.addEventListener('touchcancel', () => { canvasTouchId = null; });
+
+function steerToward(screenX, screenY) {
+  const headScreen = worldToScreen(state.head.x, state.head.y);
+  const dx = screenX - headScreen.x;
+  const dy = screenY - headScreen.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 15) return; // too close, ignore
+  state.inputDir = { x: dx / dist, y: dy / dist };
+  AudioCtx.init();
+}
+
+// Restart & pause
+document.getElementById('restart-btn').addEventListener('click', () => {
+  AudioCtx.init();
+  state.restart();
+});
+document.getElementById('pause-btn').addEventListener('click', () => {
+  if (state.phase !== 'playing') return;
+  togglePause();
+});
+
+function togglePause() {
+  AudioCtx.init();
+  state.paused = !state.paused;
+  const btn = document.getElementById('pause-btn');
+  btn.textContent = state.paused ? '▶' : '⏯';
+}
+
+// Menu difficulty buttons
+document.getElementById('diff-grid').addEventListener('click', e => {
+  const btn = e.target.closest('.diff-btn');
+  if (!btn) return;
+  AudioCtx.init();
+  const target = parseInt(btn.dataset.target, 10);
+  state.startGame(target);
+});
+
+// Victory buttons
+document.getElementById('victory-replay').addEventListener('click', () => {
+  AudioCtx.init();
+  state.startGame(state.target);
+});
+document.getElementById('victory-menu').addEventListener('click', () => {
+  state.init();
+});
+
+// ============================
+// GAME LOOP
+// ============================
+let lastTime = performance.now();
+function loop(now) {
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+  update(dt);
+  render(now);
+  requestAnimationFrame(loop);
+}
+
+// ============================
+// INIT
+// ============================
+state.init();
+// Ensure path history starts properly
+state.pathHistory = [{ x: state.head.x, y: state.head.y }];
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

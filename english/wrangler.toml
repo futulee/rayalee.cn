@@ -1,0 +1,12 @@
+name = "english-adventure"
+main = "worker/index.js"
+compatibility_date = "2024-01-01"
+
+[assets]
+directory = "./redirect"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "english-adventure"
+# Replace database_id below after running: wrangler d1 create english-adventure
+database_id = "14b1538e-babd-4748-9f59-8b402598c48e"

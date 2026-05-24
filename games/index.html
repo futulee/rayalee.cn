@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raya的小游戏</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #FFF0F8 0%, #EDE0FF 50%, #D0ECFF 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+  .hero { font-size: 56px; margin: 10px 0 6px; }
+  .title { font-size: 26px; font-weight: 900; color: #9C6FDE; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: #868E96; margin-bottom: 36px; }
+  .cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 500px;
+    width: 100%;
+    justify-content: center;
+  }
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    width: 200px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  .card-emoji { font-size: 42px; margin-bottom: 10px; }
+  .card-title { font-size: 16px; font-weight: 700; color: #333; margin-bottom: 4px; }
+  .card-desc { font-size: 12px; color: #868E96; }
+  .back-link {
+    margin-top: 36px;
+    font-size: 13px;
+    color: #9C6FDE;
+    text-decoration: none;
+  }
+  .back-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="hero"></div>
+  <div class="title">Raya的小游戏</div>
+  <div class="subtitle">点击卡片开始玩吧～</div>
+  <div class="cards">
+    <a class="card" href="2048-jelly/">
+      <div class="card-emoji">🟩</div>
+      <div class="card-title">2048 果冻方块</div>
+      <div class="card-desc">经典 2048 · 果冻风格</div>
+    </a>
+    <a class="card" href="2048-snake/">
+      <div class="card-emoji">🐍</div>
+      <div class="card-title">2048 贪吃蛇</div>
+      <div class="card-desc">2048 × 贪吃蛇 · 自由移动</div>
+    </a>
+  </div>
+  <a class="back-link" href="/">← 返回首页</a>
+</body>
+</html>
