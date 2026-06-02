@@ -9,6 +9,7 @@ const ZONES = [
   { id: 'adventure', emoji: '🎪', name: '体验探险',  color: 'adventure' },
   { id: 'food',      emoji: '🍜', name: '美食世界',  color: 'food' },
   { id: 'health',    emoji: '🥗', name: '健康达人',  color: 'health' },
+  { id: 'nature',    emoji: '🐢', name: '自然探秘',  color: 'adventure' },
 ]
 
 function ZoneDetail({ zone, words, progress, onBack, onDictation }) {
@@ -250,6 +251,9 @@ export default function Home({ user, progressData, words, onStartSession, onStar
         </button>
 
         <div className="footer-credit">Made by 李丛雅 Raya @ 深圳湾学校</div>
+        <div className="footer-credit" style={{ padding: '0 0 16px' }}>
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style={{ color: '#ADB5BD', textDecoration: 'none' }}>粤ICP备2026053704号-2</a>
+        </div>
       </div>
     </div>
   )

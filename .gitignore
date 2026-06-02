@@ -5,3 +5,4 @@ dist
 .env.local
 .DS_Store
 .claude/settings.local.json
+english/5B英语听写/

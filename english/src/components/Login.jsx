@@ -86,6 +86,9 @@ export default function Login({ onLogin }) {
         新用户直接输入名字和密码即可注册
       </p>
       <p className="footer-credit">Made by 李丛雅 Raya @ 深圳湾学校</p>
+      <p className="footer-credit" style={{ padding: '0 0 16px' }}>
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style={{ color: '#ADB5BD', textDecoration: 'none' }}>粤ICP备2026053704号-2</a>
+      </p>
     </div>
   )
 }

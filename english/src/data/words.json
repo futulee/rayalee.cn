@@ -138,5 +138,26 @@
   {"id":"w13_16","english":"How long does it take to get there?","chinese":"到那里需要多长时间？","week":13,"theme":"adventure","type":"expression"},
   {"id":"w13_17","english":"It takes about one hour and ten minutes.","chinese":"大约需要一小时十分钟。","week":13,"theme":"adventure","type":"expression"},
   {"id":"w13_18","english":"How far is it from school?","chinese":"离学校有多远？","week":13,"theme":"adventure","type":"expression"},
-  {"id":"w13_19","english":"It's 66 km.","chinese":"有66公里。","week":13,"theme":"adventure","type":"expression"}
+  {"id":"w13_19","english":"It's 66 km.","chinese":"有66公里。","week":13,"theme":"adventure","type":"expression"},
+
+  {"id":"w14_01","english":"in danger of","chinese":"处于危险中","week":14,"theme":"nature","type":"phrase"},
+  {"id":"w14_02","english":"die out","chinese":"灭绝","week":14,"theme":"nature","type":"phrase"},
+  {"id":"w14_03","english":"endangered","chinese":"濒危的","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_04","english":"sea turtle","chinese":"海龟","week":14,"theme":"nature","type":"phrase"},
+  {"id":"w14_05","english":"teeth","chinese":"牙齿","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_06","english":"allow","chinese":"允许","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_07","english":"lay eggs","chinese":"产卵","week":14,"theme":"nature","type":"phrase"},
+  {"id":"w14_08","english":"adult","chinese":"成年动物","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_09","english":"surface","chinese":"表面","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_10","english":"breathe","chinese":"呼吸","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_11","english":"from time to time","chinese":"不时；有时","week":14,"theme":"nature","type":"phrase"},
+  {"id":"w14_12","english":"stay underwater","chinese":"待在水下","week":14,"theme":"nature","type":"phrase"},
+  {"id":"w14_13","english":"have a hard shell","chinese":"有坚硬的壳","week":14,"theme":"nature","type":"phrase"},
+  {"id":"w14_14","english":"Asian elephant","chinese":"亚洲象","week":14,"theme":"nature","type":"phrase"},
+  {"id":"w14_15","english":"protect","chinese":"保护","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_16","english":"grow up","chinese":"长大","week":14,"theme":"nature","type":"phrase"},
+  {"id":"w14_17","english":"hunt","chinese":"狩猎","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_18","english":"tusks","chinese":"象牙","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_19","english":"although","chinese":"虽然","week":14,"theme":"nature","type":"word"},
+  {"id":"w14_20","english":"therefore","chinese":"因此","week":14,"theme":"nature","type":"word"}
 ]
