@@ -1,0 +1,14 @@
+{
+  "name": "raya-basketball",
+  "version": "1.0.0",
+  "description": "Raya 篮球生活 - 深圳湾学校女篮技术统计系统",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.21.0"
+  }
+}

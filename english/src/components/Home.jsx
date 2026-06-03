@@ -250,6 +250,9 @@ export default function Home({ user, progressData, words, onStartSession, onStar
           切换用户
         </button>
 
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <a href="https://rayalee.cn/" className="back-to-home">← 返回丛雅小站主页</a>
+        </div>
         <div className="footer-credit">Made by 李丛雅 Raya @ 深圳湾学校</div>
         <div className="footer-credit" style={{ padding: '0 0 16px' }}>
           <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style={{ color: '#ADB5BD', textDecoration: 'none' }}>粤ICP备2026053704号-2</a>

@@ -62,8 +62,29 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ─── Back to Home ────────────────────────────────────────── */
+.back-to-home {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.back-to-home:hover {
+  color: var(--purple);
+}
+
+.login-screen .back-to-home {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+}
+
 /* ─── Login ─────────────────────────────────────────────── */
 .login-screen {
+  position: relative;
   height: 100dvh;
   display: flex;
   flex-direction: column;

@@ -44,6 +44,7 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="login-screen">
+      <a href="https://rayalee.cn/" className="back-to-home">← 丛雅小站</a>
       <div className="login-hero">🌟</div>
       <h1 className="login-title">Raya的英语探险家</h1>
       <p className="login-subtitle">每天一点点，英语变超棒！</p>

@@ -3,74 +3,63 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>丛雅的个人小站</title>
+<title>丛雅的小站</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: linear-gradient(135deg, #FFF0F8 0%, #EDE0FF 50%, #D0ECFF 100%);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 40px 20px;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 32px;
   }
-  .hero { font-size: 64px; margin: 20px 0 8px; }
-  .title { font-size: 28px; font-weight: 900; color: #9C6FDE; margin-bottom: 8px; }
-  .subtitle { font-size: 14px; color: #868E96; margin-bottom: 40px; }
+  .title { font-size: 24px; font-weight: 900; color: #9C6FDE; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .title .star { font-size: 22px; }
+  .subtitle { font-size: 13px; color: #868E96; margin-bottom: 28px; }
   .cards {
     display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    max-width: 600px;
-    width: 100%;
-    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 360px; width: 100%;
   }
   .card {
-    background: white;
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    max-width: 280px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    background: white; border-radius: 16px; padding: 18px 14px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    text-decoration: none; color: inherit;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; transition: transform 0.2s, box-shadow 0.2s;
   }
-  .card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.14); }
-  .card-emoji { font-size: 48px; }
-  .card-title { font-size: 20px; font-weight: 800; color: #2D3436; }
-  .card-desc { font-size: 13px; color: #868E96; text-align: center; }
-  .footer { margin-top: 60px; font-size: 12px; color: #ADB5BD; text-align: center; line-height: 1.8; }
+  .card:active { transform: scale(0.97); }
+  .card-emoji { font-size: 36px; }
+  .card-title { font-size: 16px; font-weight: 800; color: #2D3436; }
+  .card-desc { font-size: 11px; color: #868E96; text-align: center; line-height: 1.4; }
+  .footer { margin-top: auto; padding-top: 24px; font-size: 11px; color: #ADB5BD; text-align: center; line-height: 1.8; }
   .footer a { color: #ADB5BD; text-decoration: none; }
-  .footer a:hover { color: #868E96; }
 </style>
 </head>
 <body>
-  <div class="hero">🌟</div>
-  <div class="title">丛雅的个人小站</div>
-  <div class="subtitle">学习 · 游戏 · 成长</div>
+  <div class="title"><span class="star">⭐</span>丛雅的小站</div>
+  <div class="subtitle">学习 · 游戏 · 运动 · 成长</div>
   <div class="cards">
     <a class="card" href="/en/">
       <div class="card-emoji">📖</div>
-      <div class="card-title">Raya的英语探险家</div>
-      <div class="card-desc">小学英语学习游戏，闪卡、连连看、拼字母、填句子</div>
+      <div class="card-title">英语探险家</div>
+      <div class="card-desc">闪卡 · 连连看 · 拼字母</div>
+    </a>
+    <a class="card" href="/basketball/">
+      <div class="card-emoji">🏀</div>
+      <div class="card-title">篮球生活</div>
+      <div class="card-desc">比赛记录 · 技术统计 · 排行榜</div>
     </a>
     <a class="card" href="/games/">
       <div class="card-emoji">🎮</div>
-      <div class="card-title">Raya的小游戏</div>
-      <div class="card-desc">2048果冻方块 · 2048贪吃蛇</div>
+      <div class="card-title">小游戏</div>
+      <div class="card-desc">2048果冻 · 2048贪吃蛇</div>
     </a>
   </div>
   <div class="footer">
     <p>Made by 李丛雅 Raya @ 深圳湾学校</p>
-    <p>
-      <a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备2026053704号-2</a>
-    </p>
+    <p><a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备2026053704号-2</a></p>
   </div>
 </body>
 </html>
