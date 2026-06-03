@@ -135,17 +135,20 @@ function renderClaimArea(game) {
 
 function renderPlayers(game) {
   const el = document.getElementById('players-area');
-  const sorted = [...game.stats].sort((a, b) => {
-    const ptsA = a.pts_2pt * 2 + a.pts_3pt * 3 + a.pts_1pt;
-    const ptsB = b.pts_2pt * 2 + b.pts_3pt * 3 + b.pts_1pt;
-    return ptsB - ptsA;
-  });
   if (isRecorder) {
+    // Stable order by jersey number while recording
+    const sorted = [...game.stats].sort((a, b) => a.number - b.number);
     el.innerHTML = sorted.map(s => recorderPlayerCard(s)).join('');
     el.querySelectorAll('.stat-btn').forEach(btn => {
       btn.addEventListener('click', handleStatClick);
     });
   } else {
+    // Sort by points for viewers
+    const sorted = [...game.stats].sort((a, b) => {
+      const ptsA = a.pts_2pt * 2 + a.pts_3pt * 3 + a.pts_1pt;
+      const ptsB = b.pts_2pt * 2 + b.pts_3pt * 3 + b.pts_1pt;
+      return ptsB - ptsA;
+    });
     el.innerHTML = sorted.map(s => viewerPlayerCard(s)).join('');
   }
 }
@@ -264,11 +267,11 @@ function recorderPlayerCard(s) {
   const pts = s.pts_2pt * 2 + s.pts_3pt * 3 + s.pts_1pt;
   return `
     <div class="player-card" data-player-id="${s.player_id}">
-      <div class="pinfo">
+      <a href="#/player/${s.player_id}" class="pinfo" style="text-decoration:none;color:inherit">
         <div class="pnum">${s.number}</div>
         <div class="pname">${h(s.name)}</div>
         <div style="font-size:.8rem;font-weight:700;color:var(--primary)">${pts}分</div>
-      </div>
+      </a>
       <div class="stats-grid">
         ${statBtn(s.player_id, 'pts_2pt', '2分', s.pts_2pt)}
         ${statBtn(s.player_id, 'pts_3pt', '3分', s.pts_3pt)}
@@ -296,8 +299,10 @@ function viewerPlayerCard(s) {
   const pts = s.pts_2pt * 2 + s.pts_3pt * 3 + s.pts_1pt;
   return `
     <div class="player-card-compact">
-      <div class="pnum">${s.number}</div>
-      <div class="pname">${h(s.name)}</div>
+      <a href="#/player/${s.player_id}" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:4px">
+        <div class="pnum">${s.number}</div>
+        <div class="pname">${h(s.name)}</div>
+      </a>
       <div class="pstats">
         <span>${pts}分</span>
         <span>2pt:${s.pts_2pt}</span>
@@ -329,11 +334,11 @@ async function handleStatClick(e) {
   try {
     const stat = await api.updateStat(gameId, playerId, field, delta);
     const valEl = statBtn.querySelector('.sval');
-    const newVal = stat[field];
-    valEl.textContent = newVal;
-    if (newVal > 0) statBtn.classList.add('scored');
-    else statBtn.classList.remove('scored');
-
+    if (valEl) {
+      valEl.textContent = stat[field];
+      if (stat[field] > 0) statBtn.classList.add('scored');
+      else statBtn.classList.remove('scored');
+    }
     updatePlayerPoints(playerId, stat);
     refreshData();
   } catch (e) {
