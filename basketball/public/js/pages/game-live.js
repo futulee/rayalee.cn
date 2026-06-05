@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { setupShare, toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js';
+import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js';
 
 let gameId, isRecorder = false, pollTimer = null;
 let claimName = '';
@@ -12,7 +12,6 @@ export async function render(main, params) {
   lastStateKey = '';
 
   document.getElementById('breadcrumb-trail').innerHTML = '<a href="#/">篮球生活</a> <span class="sep">›</span> <span class="current">比赛详情</span>';
-  document.getElementById('btn-share').style.display = '';
 
   main.innerHTML = `
     <div id="score-header" class="score-header"></div>
@@ -20,15 +19,6 @@ export async function render(main, params) {
     <div id="players-area"></div>
     <div id="game-footer"></div>
   `;
-
-  setupShare('btn-share', () => {
-    const header = document.getElementById('score-header');
-    return {
-      title: header?.dataset?.shareTitle || 'Raya 篮球生活',
-      text: header?.dataset?.shareText || '来看看我们的比赛数据',
-      url: window.location.href,
-    };
-  });
 
   // Restore recorder state from localStorage
   restoreRecorder();

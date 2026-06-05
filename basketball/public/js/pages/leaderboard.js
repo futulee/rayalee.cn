@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { setupShare, generateLeaderboardImage, toast, setPageTitle, lockBody, unlockBody } from '../share.js';
+import { generateLeaderboardImage, toast, setPageTitle, lockBody, unlockBody } from '../share.js';
 import { navigate } from '../router.js';
 
 let currentType = 'points';
@@ -8,7 +8,6 @@ let currentData = [];
 export async function render(main) {
   setPageTitle('Raya 篮球生活 - 排行榜');
   document.getElementById('breadcrumb-trail').innerHTML = '<a href="#/">篮球生活</a> <span class="sep">›</span> <span class="current">排行榜</span>';
-  document.getElementById('btn-share').style.display = '';
 
   main.innerHTML = `
     <div class="tabs">
@@ -23,12 +22,6 @@ export async function render(main) {
     </div>
     <div id="share-img-modal" class="modal-overlay" style="display:none"></div>
   `;
-
-  setupShare('btn-share', () => ({
-    title: `深圳湾女篮 - ${typeLabel(currentType)}`,
-    text: `深圳湾女篮${typeLabel(currentType)}，来看看小球员们的表现！`,
-    url: window.location.href,
-  }));
 
   // Tab switching
   main.querySelectorAll('.tab').forEach(tab => {

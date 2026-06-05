@@ -1,16 +1,10 @@
 import { api } from '../api.js';
 import { navigate } from '../router.js';
-import { toast, setPageTitle, setupShare, lockBody, unlockBody } from '../share.js';
+import { toast, setPageTitle, lockBody, unlockBody } from '../share.js';
 
 export async function render(main) {
   setPageTitle('Raya 篮球生活');
   document.getElementById('breadcrumb-trail').innerHTML = '<span class="current">篮球生活</span>';
-
-  setupShare('btn-share', () => ({
-    title: 'Raya 篮球生活 - 深圳湾学校女篮',
-    text: '深圳湾学校女篮校队比赛数据 · 技术统计 · 排行榜',
-    url: window.location.href,
-  }));
 
   main.innerHTML = `
     <div id="games-list"></div>

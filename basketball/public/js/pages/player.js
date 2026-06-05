@@ -1,11 +1,10 @@
 import { api } from '../api.js';
-import { setupShare, setPageTitle, generatePlayerImage, toast, lockBody, unlockBody } from '../share.js';
+import { setPageTitle, generatePlayerImage, toast, lockBody, unlockBody } from '../share.js';
 import { navigate } from '../router.js';
 
 export async function render(main, params) {
   const playerId = params.id;
   document.getElementById('breadcrumb-trail').innerHTML = '<a href="#/">篮球生活</a> <span class="sep">›</span> <span class="current">球员详情</span>';
-  document.getElementById('btn-share').style.display = '';
 
   main.innerHTML = '<div class="empty"><p>加载中...</p></div>';
 
@@ -20,12 +19,6 @@ export async function render(main, params) {
     }
 
     setPageTitle(`${player.name} #${player.number} - Raya 篮球生活`);
-
-    setupShare('btn-share', () => ({
-      title: `${player.name} #${player.number} - 深圳湾女篮`,
-      text: `${player.name} #${player.number} 生涯数据: ${totalPoints(data.totals)}分 ${data.totals.total_rebounds}篮板 ${data.totals.total_steals}抢断，来看她的表现！`,
-      url: window.location.href,
-    }));
 
     const t = data.totals;
     const gp = t.games_played || 1;
