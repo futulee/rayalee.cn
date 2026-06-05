@@ -346,17 +346,7 @@ async function handleStatClick(e) {
   }
 }
 
-async function confirmDeleteGame() {
-  // Determine which password to require
-  let requireAdmin = false;
-  try {
-    const game = await api.getGame(gameId);
-    requireAdmin = game.status === 'finished';
-  } catch (e) { /* use recorder code as fallback */ }
-
-  const pwLabel = requireAdmin ? '请输入管理员密码确认删除' : '请输入记录码确认删除';
-  const pwPlaceholder = requireAdmin ? '管理员密码' : '4位记录码';
-
+function confirmDeleteGame() {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.id = 'delete-confirm-modal';
@@ -365,8 +355,8 @@ async function confirmDeleteGame() {
       <div class="modal-title">确认删除比赛</div>
       <p style="text-align:center;color:var(--danger);margin-bottom:12px;font-size:.9rem">此操作不可恢复，所有数据将丢失</p>
       <div class="form-group">
-        <label class="form-label">${pwLabel}</label>
-        <input class="form-input" type="password" id="delete-code-input" placeholder="${pwPlaceholder}" maxlength="12" autocomplete="off">
+        <label class="form-label">请输入管理员密码</label>
+        <input class="form-input" type="password" id="delete-code-input" placeholder="管理员密码" maxlength="12" autocomplete="off">
       </div>
       <button class="btn btn-danger btn-block" id="btn-delete-confirm">确认删除</button>
       <button class="btn btn-sm btn-block" style="margin-top:8px;color:var(--text-muted)" id="btn-delete-cancel">取消</button>
@@ -378,15 +368,10 @@ async function confirmDeleteGame() {
 
   document.getElementById('btn-delete-confirm').addEventListener('click', async () => {
     const code = document.getElementById('delete-code-input').value.trim();
-    if (!code) { toast('请输入密码'); return; }
+    if (!code) { toast('请输入管理员密码'); return; }
     try {
-      if (requireAdmin) {
-        const { password: serverPwd } = await api.getAdminPassword();
-        if (code !== serverPwd) { toast('管理员密码错误'); return; }
-      } else {
-        const { code: serverCode } = await api.getRecorderCode();
-        if (code !== serverCode) { toast('记录码错误'); return; }
-      }
+      const { password: serverPwd } = await api.getAdminPassword();
+      if (code !== serverPwd) { toast('管理员密码错误'); return; }
       await api.deleteGame(gameId);
       overlay.remove(); unlockBody();
       toast('已删除');

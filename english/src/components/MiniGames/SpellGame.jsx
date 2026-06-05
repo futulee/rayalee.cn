@@ -56,8 +56,7 @@ function speakThreeTimes(text, onDone) {
 }
 
 export default function SpellGame({ words, onDone, onBack }) {
-  const gameWords = words.slice(0, 4)
-  const [batch] = useState(gameWords)
+  const [batch] = useState(words)
   const [idx, setIdx] = useState(0)
   const [puzzle, setPuzzle] = useState(() => buildPuzzle(batch[0]?.english || ''))
   const [filled, setFilled] = useState([])

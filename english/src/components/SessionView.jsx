@@ -32,10 +32,21 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
   )
 
   const matchSentences = useMemo(() => {
+    const sessionWords = new Set([...newWords, ...reviewWords].map(w => w.english.toLowerCase()))
     const wordThemes = new Set([...newWords, ...reviewWords].map(w => w.theme))
-    const matching = sentences.filter(s => wordThemes.has(s.theme) || (newWords.length === 0 && reviewWords.length === 0))
-    return matching.length >= 2 ? matching : sentences.slice(0, 4)
+    const allEmpty = newWords.length === 0 && reviewWords.length === 0
+
+    if (allEmpty) return sentences
+
+    // Prefer sentences whose theme matches the session
+    let matching = sentences.filter(s => wordThemes.has(s.theme))
+    // If no theme match, try sentences whose blank word is in the session vocabulary
+    if (matching.length === 0) {
+      matching = sentences.filter(s => sessionWords.has(s.blank.toLowerCase()))
+    }
+    return matching
   }, [newWords, reviewWords])
+  const hasFillSentences = matchSentences.length >= 2
 
   // ── progress bar (only for new-learning flow) ──
   const hasLearnFlow = newWords.length > 0
@@ -85,7 +96,13 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
 
   const handleSpellDone = (stars) => {
     setTotalStars(s => s + stars)
-    setPhase('fill_blank')
+    if (hasFillSentences) {
+      setPhase('fill_blank')
+    } else if (reviewWords.length > 0) {
+      setPhase('review')
+    } else {
+      setPhase('done')
+    }
   }
 
   const handleFillBlankDone = (stars) => {
@@ -233,6 +250,7 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
         <GameHub
           words={hubWords}
           totalStars={totalStars}
+          hasFillSentences={hasFillSentences}
           onSelectGame={setPhase}
           onFinish={handleHubFinish}
         />

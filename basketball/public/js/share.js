@@ -1,8 +1,3 @@
-// Detect WeChat browser
-function isWeChat() {
-  return /micromessenger/i.test(navigator.userAgent);
-}
-
 // Module-level state
 let shareCallback = null;
 let btnReady = false;
@@ -22,10 +17,11 @@ export function setupShare(buttonId, getShareData) {
   btn.addEventListener('click', async () => {
     if (!shareCallback) return;
     const data = shareCallback();
-    if (isWeChat()) { showSharePanel(data); return; }
+    // Try native share (same as system "..." menu)
     if (navigator.share) {
       try { await navigator.share(data); return; } catch (e) {}
     }
+    // Fallback: copy panel for browsers without Web Share API
     showSharePanel(data);
   });
 }

@@ -8,7 +8,8 @@ const GAMES = [
   { id: 'dictation_review', emoji: '✍️', name: '听写', desc: '听音频，拼写单词' },
 ]
 
-export default function GameHub({ words, onSelectGame, onFinish, totalStars }) {
+export default function GameHub({ words, onSelectGame, onFinish, totalStars, hasFillSentences = true }) {
+  const games = hasFillSentences ? GAMES : GAMES.filter(g => g.id !== 'fill_review')
   return (
     <div className="screen" style={{ paddingTop: 16 }}>
       <div className="match-header" style={{ position: 'relative' }}>
@@ -23,7 +24,7 @@ export default function GameHub({ words, onSelectGame, onFinish, totalStars }) {
       )}
 
       <div className="hub-games-grid">
-        {GAMES.map(g => (
+        {games.map(g => (
           <button
             key={g.id}
             className="hub-game-card"
