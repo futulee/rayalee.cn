@@ -8,8 +8,11 @@ const GAMES = [
   { id: 'dictation_review', emoji: '✍️', name: '听写', desc: '听音频，拼写单词' },
 ]
 
-export default function GameHub({ words, onSelectGame, onFinish, totalStars, hasFillSentences = true }) {
-  const games = hasFillSentences ? GAMES : GAMES.filter(g => g.id !== 'fill_review')
+export default function GameHub({ words, onSelectGame, onFinish, totalStars, hasFillSentences = true, isSentenceMode = false }) {
+  let games = hasFillSentences ? GAMES : GAMES.filter(g => g.id !== 'fill_review')
+  if (isSentenceMode) {
+    games = games.filter(g => g.id !== 'spell_review')
+  }
   return (
     <div className="screen" style={{ paddingTop: 16 }}>
       <div className="match-header" style={{ position: 'relative' }}>
@@ -39,7 +42,7 @@ export default function GameHub({ words, onSelectGame, onFinish, totalStars, has
 
       <div className="hub-words-section" style={{ marginTop: 8 }}>
         <div className="zones-title" style={{ marginBottom: 8 }}>
-          复习单词（{words.length} 个）
+          {isSentenceMode ? '复习内容' : '复习单词'}（{words.length} 个）
         </div>
         <div className="today-words-list">
           {words.map(w => (

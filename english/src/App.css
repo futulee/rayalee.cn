@@ -1298,6 +1298,54 @@
   font-weight: 600;
 }
 
+/* ─── Sentence-adapted Flashcard ──────────────────────────── */
+.flip-card-wrap.sentence-card-wrap {
+  height: 340px;
+}
+
+.flip-card-face.sentence-card {
+  gap: 6px;
+  padding: 18px 18px;
+}
+
+.card-english-long {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--purple);
+  text-align: center;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.card-chinese-long {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--blue);
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+/* ─── Single-column Match Grid (sentence mode) ───────────── */
+.match-grid-single {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.match-tile-long {
+  min-height: 72px;
+  font-size: 14px;
+  padding: 12px 12px;
+  overflow-wrap: break-word;
+}
+
+/* ─── Sentence-mode SpellGame word wrapping ───────────────── */
+.spell-sentence-row {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  overflow-x: visible;
+}
+
 /* ─── Footer ──────────────────────────────────────────────── */
 .footer-credit {
   text-align: center;
@@ -1312,6 +1360,7 @@
 @media (min-width: 600px) {
   .screen { padding: 28px; }
   .card-english { font-size: 30px; }
+  .card-english-long { font-size: 22px; }
   .match-tile { font-size: 16px; padding: 16px 12px; }
   .zones-grid { grid-template-columns: repeat(4, 1fr); }
 }
@@ -1320,6 +1369,7 @@
 @media (min-width: 768px) {
   .screen { padding: 32px 40px; }
   .card-english { font-size: 32px; }
+  .card-english-long { font-size: 24px; }
   .login-card { max-width: 420px; padding: 32px; }
   .login-title { font-size: 36px; }
   .flip-card-wrap { max-width: 500px; height: 260px; }
@@ -1329,8 +1379,9 @@
 @media (min-width: 1024px) {
   .screen { padding: 40px 60px; }
   .card-english { font-size: 36px; }
+  .card-english-long { font-size: 26px; }
   .match-tile { font-size: 18px; padding: 18px 16px; }
-  .match-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .match-grid:not(.match-grid-single) { grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .flip-card-wrap { max-width: 600px; height: 280px; }
   .flip-card-face { padding: 32px; }
   .zone-card { padding: 20px; }
@@ -1344,7 +1395,7 @@
   .spell-char-sm { font-size: 24px; }
   .fill-option { font-size: 19px; padding: 16px 20px; }
   .fill-sentence-text { font-size: 24px; }
-  .match-grid { grid-template-columns: repeat(4, 1fr); }
+  .match-grid:not(.match-grid-single) { grid-template-columns: repeat(4, 1fr); }
   .zones-grid { grid-template-columns: repeat(4, 1fr); }
   .hub-games-grid { grid-template-columns: repeat(4, 1fr); }
 }

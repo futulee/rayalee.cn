@@ -8,10 +8,12 @@ import GameHub from './GameHub.jsx'
 import DailyReport from './DailyReport.jsx'
 import { processAnswer, initWord } from '../utils/leitner.js'
 import sentences from '../data/sentences.json'
+import { sentencesToFillBlanks, getVocabWordsForSentence } from '../utils/sentenceUtils.js'
 
-// new-learning: learn → match_new → spell → fill_blank → review → dictation → done
+// new-learning: learn → match_new → (spell if not sentence) → fill_blank → (review) → dictation → done
 // review-only:  hub ⇄ any game → done
 export default function SessionView({ newWords, reviewWords, progress, streak, onDone, onMoreWords, onClose }) {
+  const isAllSentences = newWords.length > 0 && newWords.every(w => w.type === 'sentence')
   const [forceHub, setForceHub] = useState(false)
   const [phase, setPhase] = useState(
     newWords.length > 0 ? 'learn' : (reviewWords.length > 0 ? 'hub' : 'done')
@@ -27,6 +29,7 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
 
   const isHubMode = forceHub || (newWords.length === 0 && reviewWords.length > 0)
   const hubWords = hubWordsOverride || (learnedWords.length > 0 ? learnedWords : reviewWords)
+  const isSentenceMode = hubWords.length > 0 && hubWords.some(w => w.type === 'sentence')
   const reportHubWords = [...learnedWords, ...reviewWords].filter(
     (w, i, arr) => arr.findIndex(x => x.id === w.id) === i
   )
@@ -44,6 +47,13 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
     if (matching.length === 0) {
       matching = sentences.filter(s => sessionWords.has(s.blank.toLowerCase()))
     }
+
+    // For sentence-type items, generate fill-blank content from sentences themselves
+    const sentenceItems = [...newWords, ...reviewWords].filter(w => w.type === 'sentence')
+    if (sentenceItems.length > 0) {
+      matching = [...matching, ...sentencesToFillBlanks(sentenceItems)]
+    }
+
     return matching
   }, [newWords, reviewWords])
   const hasFillSentences = matchSentences.length >= 2
@@ -91,7 +101,11 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
     }
     setLocalProgress(p)
     setTotalStars(s => s + stars)
-    setPhase('spell')
+    if (isAllSentences) {
+      setPhase('fill_blank')
+    } else {
+      setPhase('spell')
+    }
   }
 
   const handleSpellDone = (stars) => {
@@ -109,6 +123,8 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
     setTotalStars(s => s + stars)
     if (reviewWords.length > 0) {
       setPhase('review')
+    } else if (isAllSentences) {
+      setPhase('dictation')
     } else {
       setPhase('done')
     }
@@ -127,6 +143,20 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
 
   const handleDictationDone = (stars) => {
     setTotalStars(s => s + stars)
+    // Save progress for new words that haven't been saved yet
+    let p = { ...localProgress }
+    let savedCount = 0
+    for (const w of newWords) {
+      if (!p[w.id]) {
+        p = { ...p, [w.id]: initWord(w.id) }
+        savedCount++
+      }
+    }
+    if (savedCount > 0) {
+      setLocalProgress(p)
+      setLearnedCount(c => c + savedCount)
+      setLearnedWords(prev => [...prev, ...newWords.filter(w => !localProgress[w.id])])
+    }
     setPhase('done')
   }
 
@@ -211,6 +241,7 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
       {phase === 'spell' && (learnedWords.length >= 1 || reviewWords.length >= 1) && (
         <SpellGame
           words={learnedWords.length >= 1 ? learnedWords : reviewWords}
+          getVocabFor={(w) => w.type === 'sentence' ? getVocabWordsForSentence(w.english) : null}
           onBack={onClose}
           onDone={handleSpellDone}
         />
@@ -251,6 +282,7 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
           words={hubWords}
           totalStars={totalStars}
           hasFillSentences={hasFillSentences}
+          isSentenceMode={isSentenceMode}
           onSelectGame={setPhase}
           onFinish={handleHubFinish}
         />
@@ -288,6 +320,7 @@ export default function SessionView({ newWords, reviewWords, progress, streak, o
       {phase === 'spell_review' && (
         <SpellGame
           words={hubWords}
+          getVocabFor={(w) => w.type === 'sentence' ? getVocabWordsForSentence(w.english) : null}
           onBack={() => setPhase('hub')}
           onDone={(stars) => handleHubGameDone(stars, null)}
         />

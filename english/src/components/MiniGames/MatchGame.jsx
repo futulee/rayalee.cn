@@ -23,6 +23,7 @@ function buildTiles(words) {
 const PER_PAGE = 4
 
 export default function MatchGame({ words, title, subtitle, onDone, onBack }) {
+  const isSentenceMode = words.some(w => w.type === 'sentence')
   const allWords = words
   const usePaging = allWords.length > 6
   const [batchStart, setBatchStart] = useState(0)
@@ -133,12 +134,13 @@ export default function MatchGame({ words, title, subtitle, onDone, onBack }) {
         </div>
       </div>
       <div className="match-stars-row">⭐ {stars}</div>
-      <div className="match-grid">
+      <div className={`match-grid${isSentenceMode ? ' match-grid-single' : ''}`}>
         {tiles.map(tile => (
           <button
             key={tile.id}
             className={[
               'match-tile',
+              isSentenceMode ? 'match-tile-long' : '',
               tile.side,
               tile.id === selected ? 'selected' : '',
               tile.state === 'correct' ? 'correct' : '',

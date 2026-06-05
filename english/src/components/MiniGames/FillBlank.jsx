@@ -59,7 +59,6 @@ function pickOptions(sentences, correctBlank) {
   return shuffle([correctBlank, ...distractors])
 }
 
-// Generate a simple explanation for the answer
 function getExplain(sentence, blank) {
   if (blank === 'already' || blank === 'just') return `"${blank}" 表示"已经/刚刚"，常用于现在完成时`
   if (blank === 'ever' || blank === 'never') return `"${blank}" 用于现在完成时，表示"曾经/从不"`
@@ -73,29 +72,184 @@ function getExplain(sentence, blank) {
   return `"${blank}" 填入句子后使句子意思完整、语法正确`
 }
 
-export default function FillBlank({ sentences, onDone, onBack }) {
-  const total = Math.min(sentences.length, 4)
-  const [batch] = useState(() => sentences.slice(0, total))
-  const [idx, setIdx] = useState(0)
-  const [stars, setStars] = useState(0)
-  const [results, setResults] = useState({})
-  const [selected, setSelected] = useState(null)
-  const [options, setOptions] = useState(() => pickOptions(sentences, batch[0]?.blank))
+function normalize(s) {
+  return s.trim().toLowerCase().replace(/[.,!?;:'"]/g, '').replace(/\s+/g, ' ')
+}
 
-  const current = batch[idx]
-  if (!current) {
-    return (
-      <div className="flashcard-screen">
-        <div style={{ fontSize: 64 }}>🎉</div>
-        <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--purple)' }}>填词完成！</div>
-        <div className="match-stars-row">⭐ +{stars} 颗星星</div>
-        <button className="btn btn-success" style={{ width: '100%', maxWidth: 300 }}
-          onClick={() => onDone(stars, results)}>
-          继续 →
-        </button>
-      </div>
-    )
+// ── Multi-blank mode (sentence-type items) ──
+
+function MultiBlankFill({ current, onNext, onDone, onBack, idx, total, stars, setStars, results, setResults }) {
+  const n = current.blanks.length
+  const [inputs, setInputs] = useState(current.blanks.map(() => ''))
+  const [submitted, setSubmitted] = useState(false)
+  const [revealed, setRevealed] = useState(false)
+
+  const handleReveal = () => {
+    setRevealed(true)
+    // Fill inputs with correct answers so user can see them
+    setInputs(current.blanks.map(b => b.display))
   }
+
+  const handleRetry = () => {
+    setRevealed(false)
+    setSubmitted(false)
+    setInputs(current.blanks.map(() => ''))
+  }
+
+  const handleInputChange = (i, val) => {
+    if (submitted) return
+    const next = [...inputs]
+    next[i] = val
+    setInputs(next)
+  }
+
+  const handleSubmit = () => {
+    if (revealed) return
+    setSubmitted(true)
+    speak(current.original)
+    let earned = 0
+    const res = {}
+    for (let i = 0; i < n; i++) {
+      const correct = normalize(inputs[i]) === normalize(current.blanks[i].display)
+      if (correct) {
+        earned += 3
+        res[`${current.id}_${i}`] = 'correct'
+      } else {
+        res[`${current.id}_${i}`] = 'wrong'
+      }
+    }
+    setStars(s => s + earned)
+    setResults(r => ({ ...r, ...res }))
+  }
+
+  const handleNext = () => {
+    if (idx + 1 >= total) {
+      onDone()
+    } else {
+      onNext()
+    }
+  }
+
+  // Render sentence with ___ replaced by numbered blanks
+  const parts = current.text.split('___')
+  const sentenceDisplay = []
+  parts.forEach((part, i) => {
+    if (i > 0) {
+      const blank = current.blanks[i - 1]
+      const answered = submitted || revealed
+      const isCorrect = submitted && normalize(inputs[i - 1]) === normalize(blank.display)
+      const isWrong = submitted && !isCorrect
+      sentenceDisplay.push(
+        <span key={`b_${i}`} style={{
+          display: 'inline-block',
+          minWidth: 60,
+          borderBottom: answered ? (isWrong && !revealed ? '3px solid var(--red)' : '3px solid var(--green)') : '3px dashed var(--purple)',
+          margin: '0 4px',
+          padding: '0 8px',
+          fontWeight: 900,
+          color: answered ? (isWrong && !revealed ? 'var(--red)' : 'var(--green)') : 'var(--text-muted)',
+          verticalAlign: 'bottom',
+        }}>
+          {answered ? blank.display : (inputs[i - 1] || '    ')}
+        </span>
+      )
+    }
+    sentenceDisplay.push(<span key={`t_${i}`}>{part}</span>)
+  })
+
+  return (
+    <div className="screen" style={{ paddingTop: 8 }}>
+      <div className="match-header" style={{ position: 'relative' }}>
+        {onBack && (
+          <button className="session-close" style={{ position: 'absolute', left: 0, top: -4 }}
+            onClick={onBack}>✕</button>
+        )}
+        <div className="match-title">填词游戏 ✏️</div>
+        <div className="match-subtitle">第 {idx + 1} / {total} 题</div>
+      </div>
+      <div className="match-stars-row">⭐ {stars}</div>
+
+      <div className="fill-sentence-card" onClick={() => speak(current.original)}>
+        <div className="fill-sentence-text" style={{ lineHeight: 2.2 }}>
+          {sentenceDisplay}
+        </div>
+        <div className="fill-sentence-chinese">{current.chinese}</div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {current.blanks.map((b, i) => {
+          const isCorrect = submitted && normalize(inputs[i]) === normalize(b.display)
+          const isWrong = submitted && !isCorrect
+          const disabled = submitted || revealed
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', minWidth: 50 }}>
+                {b.chinese || b.word}
+              </span>
+              <button className="btn-speak" style={{ fontSize: 16, padding: '2px 6px', flexShrink: 0 }}
+                onClick={() => speak(b.display)} title="听发音">
+                🔊
+              </button>
+              <input
+                className={`dictation-input ${isCorrect || revealed ? 'correct' : ''} ${isWrong ? 'wrong' : ''}`}
+                style={{ flex: 1, padding: '10px 14px', fontSize: 16, letterSpacing: 1 }}
+                value={inputs[i]}
+                onChange={e => handleInputChange(i, e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
+                disabled={disabled}
+                placeholder={isWrong ? b.display : '输入单词…'}
+                autoComplete="off"
+                autoCapitalize="off"
+                spellCheck="false"
+              />
+              {isWrong && (
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', whiteSpace: 'nowrap' }}>
+                  答案：{b.display}
+                </span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {!submitted && !revealed && (
+        <div style={{ marginTop: 16, textAlign: 'center', display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <button className="btn btn-muted" style={{ padding: '14px 24px', fontSize: 16 }}
+            onClick={handleReveal}>
+            💡 提示
+          </button>
+          <button className="btn btn-primary" style={{ flex: 1, maxWidth: 260 }}
+            onClick={handleSubmit}>
+            提交 ✅
+          </button>
+        </div>
+      )}
+
+      {revealed && !submitted && (
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <button className="btn btn-primary" style={{ width: '100%', maxWidth: 320, background: 'var(--orange)' }}
+            onClick={handleRetry}>
+            🔄 重做
+          </button>
+        </div>
+      )}
+
+      {submitted && (
+        <div className="fill-next-wrap">
+          <button className="btn btn-primary fill-next-btn" onClick={handleNext}>
+            {idx + 1 >= total ? '完成！' : '下一题 →'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Original single-blank mode ──
+
+function SingleBlankFill({ current, onNext, onDone, idx, total, stars, setStars, results, setResults, sentences }) {
+  const [selected, setSelected] = useState(null)
+  const [options] = useState(() => pickOptions(sentences, current.blank))
 
   const sentenceParts = current.text.split(current.blank)
   const isCorrect = selected === current.blank
@@ -113,29 +267,17 @@ export default function FillBlank({ sentences, onDone, onBack }) {
     }
   }
 
-  const handleOptionSpeak = (e, option) => {
-    e.stopPropagation()
-    speak(option)
-  }
-
   const handleNext = () => {
-    const next = idx + 1
-    if (next >= total) {
-      setIdx(next)
+    if (idx + 1 >= total) {
+      onDone()
     } else {
-      setIdx(next)
-      setSelected(null)
-      setOptions(pickOptions(sentences, batch[next]?.blank))
+      onNext()
     }
   }
 
   return (
     <div className="screen" style={{ paddingTop: 8 }}>
-      <div className="match-header" style={{ position: 'relative' }}>
-        {onBack && (
-          <button className="session-close" style={{ position: 'absolute', left: 0, top: -4 }}
-            onClick={onBack}>✕</button>
-        )}
+      <div className="match-header">
         <div className="match-title">填词游戏 ✏️</div>
         <div className="match-subtitle">第 {idx + 1} / {total} 题</div>
       </div>
@@ -180,7 +322,6 @@ export default function FillBlank({ sentences, onDone, onBack }) {
 
       <div className="fill-options">
         {options.map((opt, i) => {
-          const meaning = getMeaning(opt)
           let cls = 'fill-option'
           if (selected === opt && opt === current.blank) cls += ' correct'
           else if (selected === opt && opt !== current.blank) cls += ' wrong'
@@ -192,8 +333,8 @@ export default function FillBlank({ sentences, onDone, onBack }) {
               onClick={() => selected ? speak(opt) : handlePick(opt)}
             >
               <span className="fill-opt-text">{opt}</span>
-              {selected && meaning && (
-                <span className="fill-opt-meaning">{meaning}</span>
+              {selected && getMeaning(opt) && (
+                <span className="fill-opt-meaning">{getMeaning(opt)}</span>
               )}
             </button>
           )
@@ -202,12 +343,134 @@ export default function FillBlank({ sentences, onDone, onBack }) {
 
       {selected && (
         <div className="fill-next-wrap">
-          <button className="btn btn-primary fill-next-btn"
-            onClick={handleNext}>
+          <button className="btn btn-primary fill-next-btn" onClick={handleNext}>
             {idx + 1 >= total ? '完成！' : '下一题 →'}
           </button>
         </div>
       )}
     </div>
+  )
+}
+
+// ── Main FillBlank component ──
+
+export default function FillBlank({ sentences, onDone, onBack }) {
+  const isMultiBlank = sentences.length > 0 && sentences[0].blanks
+
+  if (isMultiBlank) {
+    return <MultiBlankFillWrapper sentences={sentences} onDone={onDone} onBack={onBack} />
+  }
+
+  const total = Math.min(sentences.length, 4)
+  const [batch] = useState(() => sentences.slice(0, total))
+  const [idx, setIdx] = useState(0)
+  const [stars, setStars] = useState(0)
+  const [results, setResults] = useState({})
+
+  const current = batch[idx]
+  if (!current) {
+    return (
+      <div className="flashcard-screen">
+        <div style={{ fontSize: 64 }}>🎉</div>
+        <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--purple)' }}>填词完成！</div>
+        <div className="match-stars-row">⭐ +{stars} 颗星星</div>
+        <button className="btn btn-success" style={{ width: '100%', maxWidth: 300 }}
+          onClick={() => onDone(stars, results)}>
+          继续 →
+        </button>
+      </div>
+    )
+  }
+
+  const handleNext = () => {
+    if (idx + 1 >= total) {
+      setIdx(total)
+    } else {
+      setIdx(idx + 1)
+    }
+  }
+
+  if (idx >= total) {
+    return (
+      <div className="flashcard-screen">
+        <div style={{ fontSize: 64 }}>🎉</div>
+        <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--purple)' }}>填词完成！</div>
+        <div className="match-stars-row">⭐ +{stars} 颗星星</div>
+        <button className="btn btn-success" style={{ width: '100%', maxWidth: 300 }}
+          onClick={() => onDone(stars, results)}>
+          继续 →
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <SingleBlankFill
+      current={current}
+      onNext={handleNext}
+      onDone={() => onDone(stars, results)}
+      idx={idx}
+      total={total}
+      stars={stars}
+      setStars={setStars}
+      results={results}
+      setResults={setResults}
+      sentences={sentences}
+    />
+  )
+}
+
+function MultiBlankFillWrapper({ sentences, onDone, onBack }) {
+  const [idx, setIdx] = useState(0)
+  const [stars, setStars] = useState(0)
+  const [results, setResults] = useState({})
+
+  const current = sentences[idx]
+  if (!current) {
+    return (
+      <div className="flashcard-screen">
+        <div style={{ fontSize: 64 }}>🎉</div>
+        <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--purple)' }}>填词完成！</div>
+        <div className="match-stars-row">⭐ +{stars} 颗星星</div>
+        <button className="btn btn-success" style={{ width: '100%', maxWidth: 300 }}
+          onClick={() => onDone(stars, results)}>继续 →</button>
+      </div>
+    )
+  }
+
+  const handleNext = () => {
+    if (idx + 1 >= sentences.length) {
+      setIdx(sentences.length)
+    } else {
+      setIdx(idx + 1)
+    }
+  }
+
+  if (idx >= sentences.length) {
+    return (
+      <div className="flashcard-screen">
+        <div style={{ fontSize: 64 }}>🎉</div>
+        <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--purple)' }}>填词完成！</div>
+        <div className="match-stars-row">⭐ +{stars} 颗星星</div>
+        <button className="btn btn-success" style={{ width: '100%', maxWidth: 300 }}
+          onClick={() => onDone(stars, results)}>继续 →</button>
+      </div>
+    )
+  }
+
+  return (
+    <MultiBlankFill
+      key={current.id}
+      current={current}
+      onNext={handleNext}
+      onDone={() => onDone(stars, results)}
+      onBack={onBack}
+      idx={idx}
+      total={sentences.length}
+      stars={stars}
+      setStars={setStars}
+      results={results}
+      setResults={setResults}
+    />
   )
 }

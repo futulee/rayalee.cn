@@ -12,9 +12,15 @@ export default function WordChip({ word, className, showChinese, children }) {
     }
   }
 
+  const isLongText = word.type === 'sentence' || word.english.length > 30
+
   const handleClick = () => {
     cleanup()
     const text = word.english
+    if (isLongText) {
+      speak(text, 0.82)
+      return
+    }
     const perLetter = Math.max(80, Math.min(150, 800 / text.length))
     let i = 0
     setVisibleLetters(0)
@@ -33,7 +39,14 @@ export default function WordChip({ word, className, showChinese, children }) {
   }
 
   const renderText = (text) => {
-    // Always render with per-letter spans to keep size stable
+    // For long text, render plain to avoid per-character inline-block word breaks
+    if (isLongText) {
+      return (
+        <span className="chip-typing-text" style={{ overflowWrap: 'break-word', wordBreak: 'normal' }}>
+          {text}
+        </span>
+      )
+    }
     const allVisible = visibleLetters < 0
     return (
       <span className="chip-typing-text">

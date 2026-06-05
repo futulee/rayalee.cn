@@ -10,12 +10,38 @@ function pickHiddenIndices(word, count) {
   return new Set(shuffled.slice(0, Math.min(count, letterIndices.length)))
 }
 
-function buildPuzzle(word) {
+function buildPuzzle(word, vocabWords) {
   const chars = word.split('')
-  const letterCount = chars.filter(c => /[a-zA-Z]/.test(c)).length
-  const hideCount = Math.max(1, Math.min(3, Math.floor(letterCount * 0.35)))
+  let hidden
 
-  const hidden = pickHiddenIndices(word, hideCount)
+  if (vocabWords && vocabWords.length > 0) {
+    // Hide all letters of target vocabulary words within the sentence
+    hidden = new Set()
+    const lower = word.toLowerCase()
+    for (const vw of vocabWords) {
+      const vLower = vw.toLowerCase()
+      let fromIdx = 0
+      while (true) {
+        const pos = lower.indexOf(vLower, fromIdx)
+        if (pos === -1) break
+        const startOk = pos === 0 || !/[a-zA-Z]/.test(lower[pos - 1])
+        if (startOk) {
+          for (let i = pos; i < pos + vLower.length; i++) {
+            if (/[a-zA-Z]/.test(chars[i])) hidden.add(i)
+          }
+        }
+        fromIdx = pos + vLower.length
+      }
+    }
+  }
+
+  // Fallback to default random hiding if no vocab words matched
+  if (!hidden || hidden.size === 0) {
+    const letterCount = chars.filter(c => /[a-zA-Z]/.test(c)).length
+    const hideCount = Math.max(1, Math.min(3, Math.floor(letterCount * 0.35)))
+    hidden = pickHiddenIndices(word, hideCount)
+  }
+
   const missing = []
   const display = chars.map((c, i) => {
     if (hidden.has(i)) {
@@ -55,10 +81,13 @@ function speakThreeTimes(text, onDone) {
   }, 900)
 }
 
-export default function SpellGame({ words, onDone, onBack }) {
+export default function SpellGame({ words, onDone, onBack, getVocabFor }) {
   const [batch] = useState(words)
   const [idx, setIdx] = useState(0)
-  const [puzzle, setPuzzle] = useState(() => buildPuzzle(batch[0]?.english || ''))
+  const [puzzle, setPuzzle] = useState(() => {
+    const w = batch[0]
+    return buildPuzzle(w?.english || '', getVocabFor ? getVocabFor(w) : null)
+  })
   const [filled, setFilled] = useState([])
   const [currentBlank, setCurrentBlank] = useState(0)
   const [stars, setStars] = useState(0)
@@ -105,8 +134,8 @@ export default function SpellGame({ words, onDone, onBack }) {
       setDone(true)
     } else {
       setIdx(next)
-      const newPuzzle = buildPuzzle(batch[next]?.english || '')
-      setPuzzle(newPuzzle)
+      const w = batch[next]
+      setPuzzle(buildPuzzle(w?.english || '', getVocabFor ? getVocabFor(w) : null))
       setFilled([])
       setUsedTileIds(new Set())
       setCurrentBlank(0)
@@ -166,6 +195,7 @@ export default function SpellGame({ words, onDone, onBack }) {
   })
 
   const isLongWord = current.english.length > 12
+  const isVocabMode = getVocabFor && getVocabFor(current) && getVocabFor(current).length > 0
 
   return (
     <div className="screen" style={{ paddingTop: 8 }}>
@@ -181,7 +211,7 @@ export default function SpellGame({ words, onDone, onBack }) {
 
       <div className="spell-word-card" onClick={handleReplay}>
         <div className="spell-chinese">{current.chinese}</div>
-        <div className={`spell-word-row ${isLongWord ? 'spell-word-compact' : ''}`}>
+        <div className={`spell-word-row ${isLongWord ? 'spell-word-compact' : ''} ${isVocabMode ? 'spell-sentence-row' : ''}`}>
           {segments.map(seg => {
             if (seg.type === 'space') return <span key={seg.key} className="spell-space" />
             return (

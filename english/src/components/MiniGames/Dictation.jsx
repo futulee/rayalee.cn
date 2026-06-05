@@ -1,6 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { speak, playErrorSound } from '../../utils/speech.js'
 
+function normalize(text) {
+  return text.trim().toLowerCase().replace(/[.,!?;:'"]/g, '').replace(/\s+/g, ' ')
+}
+
+function isSentence(text) {
+  return text.length > 30 || text.includes(' ')
+}
+
 export default function Dictation({ words, onDone, onSkip, onBack }) {
   const total = words.length
   if (total === 0) {
@@ -45,7 +53,7 @@ export default function Dictation({ words, onDone, onSkip, onBack }) {
     setTimeout(() => inputRef.current?.focus(), 200)
   }, [current.id, round])
 
-  const isCorrect = input.trim().toLowerCase() === current.english.toLowerCase()
+  const isCorrect = normalize(input) === normalize(current.english)
 
   const handleSubmit = () => {
     if (!input.trim() || phase !== 'input') return
@@ -163,6 +171,9 @@ export default function Dictation({ words, onDone, onSkip, onBack }) {
     )
   }
 
+  const currentIsSentence = isSentence(current.english)
+  const inputLabel = currentIsSentence ? '输入你听到的句子…' : '输入你听到的单词…'
+
   // Input / correct / wrong phases
   const isLongWord = current.english.length > 15
 
@@ -173,7 +184,7 @@ export default function Dictation({ words, onDone, onSkip, onBack }) {
           <button className="session-close" style={{ position: 'absolute', left: 0, top: -4 }}
             onClick={onBack}>✕</button>
         )}
-        <div className="match-title">听写 ✍️</div>
+        <div className="match-title">{currentIsSentence ? '句子听写 ✍️' : '听写 ✍️'}</div>
         <div className="match-subtitle">
           第 {idx + 1} / {currentWords.length} 题{round > 1 ? ` · 第${round}轮` : ''}
         </div>
@@ -187,19 +198,36 @@ export default function Dictation({ words, onDone, onSkip, onBack }) {
         </button>
         <div className="dictation-hint">中文提示：{current.chinese}</div>
 
-        <input
-          ref={inputRef}
-          className={`dictation-input ${phase === 'correct' ? 'correct' : ''} ${phase === 'wrong' ? 'wrong' : ''}`}
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={phase !== 'input'}
-          placeholder="输入你听到的单词…"
-          autoComplete="off"
-          autoCapitalize="off"
-          spellCheck="false"
-        />
+        {currentIsSentence ? (
+          <textarea
+            ref={inputRef}
+            className={`dictation-input ${phase === 'correct' ? 'correct' : ''} ${phase === 'wrong' ? 'wrong' : ''}`}
+            style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit', letterSpacing: 1 }}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
+            disabled={phase !== 'input'}
+            placeholder={inputLabel}
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            rows={3}
+          />
+        ) : (
+          <input
+            ref={inputRef}
+            className={`dictation-input ${phase === 'correct' ? 'correct' : ''} ${phase === 'wrong' ? 'wrong' : ''}`}
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={phase !== 'input'}
+            placeholder={inputLabel}
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck="false"
+          />
+        )}
 
         {phase === 'input' && (
           <button className="btn btn-primary" style={{ width: '100%', maxWidth: 280, marginTop: 8 }}

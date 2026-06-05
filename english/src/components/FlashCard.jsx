@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { speak } from '../utils/speech.js'
 
 const TYPE_LABELS = {
-  word: '单词', phrase: '短语', grammar: '语法', expression: '表达',
+  word: '单词', phrase: '短语', grammar: '语法', expression: '表达', sentence: '句子',
 }
 
 export default function FlashCard({ word, index, total, onKnow, onSkip, reviewMode, onBack, onPrev, onNext }) {
+  const isLongText = word.type === 'sentence' || word.english.length > 30
   const [flipped, setFlipped] = useState(false)
   const [visibleLetters, setVisibleLetters] = useState(0)
   const timerRef = useRef(null)
@@ -51,10 +52,18 @@ export default function FlashCard({ word, index, total, onKnow, onSkip, reviewMo
   const handleFlip = () => {
     if (!flipped) {
       setFlipped(true)
-      startTyping()
+      if (isLongText) {
+        speak(word.english, 0.82)
+      } else {
+        startTyping()
+      }
     } else {
-      // Card already flipped: replay animation + pronunciation
-      startTyping()
+      // Card already flipped: replay pronunciation
+      if (isLongText) {
+        speak(word.english, 0.82)
+      } else {
+        startTyping()
+      }
     }
   }
 
@@ -85,27 +94,27 @@ export default function FlashCard({ word, index, total, onKnow, onSkip, reviewMo
       </div>
 
       <div
-        className={`flip-card-wrap ${flipped ? 'flipped' : ''}`}
+        className={`flip-card-wrap ${isLongText ? 'sentence-card-wrap' : ''} ${flipped ? 'flipped' : ''}`}
         onClick={handleFlip}
       >
         <div className="flip-card-inner">
-          <div className="flip-card-face flip-card-front">
+          <div className={`flip-card-face flip-card-front${isLongText ? ' sentence-card' : ''}`}>
             <div className="card-type-badge">{TYPE_LABELS[word.type] || word.type}</div>
-            <div className="card-english">{word.english}</div>
+            <div className={`card-english${isLongText ? ' card-english-long' : ''}`}>{word.english}</div>
             {word.hint && <div className="card-hint">{word.hint}</div>}
             <div className="card-tap-hint">点击翻转 👆</div>
           </div>
-          <div className="flip-card-face flip-card-back">
+          <div className={`flip-card-face flip-card-back${isLongText ? ' sentence-card' : ''}`}>
             <button
               className="btn-speak"
               onClick={e => { e.stopPropagation(); handleFlip() }}
             >
               🔊
             </button>
-            <div className="card-english" style={{ color: 'var(--blue)' }}>
-              {renderText(word.english, 'var(--blue)')}
+            <div className={`card-english${isLongText ? ' card-english-long' : ''}`} style={{ color: 'var(--blue)' }}>
+              {isLongText ? word.english : renderText(word.english, 'var(--blue)')}
             </div>
-            <div className="card-chinese">{word.chinese}</div>
+            <div className={`card-chinese${isLongText ? ' card-chinese-long' : ''}`}>{word.chinese}</div>
             {word.hint && <div className="card-hint">{word.hint}</div>}
           </div>
         </div>
