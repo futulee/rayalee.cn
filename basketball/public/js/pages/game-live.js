@@ -1,5 +1,5 @@
-import { api } from '../api.js';
-import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js';
+import { api } from '../api.js?v=31';
+import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js?v=31';
 
 let gameId, isRecorder = false, pollTimer = null;
 let claimName = '';

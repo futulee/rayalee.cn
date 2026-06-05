@@ -1,8 +1,8 @@
-import { route, start } from './router.js';
-import { render as gamesPage } from './pages/games.js';
-import { render as gameLivePage, cleanup as gameLiveCleanup } from './pages/game-live.js';
-import { render as leaderboardPage } from './pages/leaderboard.js';
-import { render as playerPage } from './pages/player.js';
+import { route, start } from './router.js?v=31';
+import { render as gamesPage } from './pages/games.js?v=31';
+import { render as gameLivePage, cleanup as gameLiveCleanup } from './pages/game-live.js?v=31';
+import { render as leaderboardPage } from './pages/leaderboard.js?v=31';
+import { render as playerPage } from './pages/player.js?v=31';
 
 route('/', (main) => { showBottomNav(true, 'games'); gamesPage(main); });
 route('/leaderboard', (main) => { showBottomNav(true, 'lb'); leaderboardPage(main); });

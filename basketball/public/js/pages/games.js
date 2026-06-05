@@ -1,6 +1,6 @@
-import { api } from '../api.js';
-import { navigate } from '../router.js';
-import { toast, setPageTitle, lockBody, unlockBody } from '../share.js';
+import { api } from '../api.js?v=31';
+import { navigate } from '../router.js?v=31';
+import { toast, setPageTitle, lockBody, unlockBody } from '../share.js?v=31';
 
 export async function render(main) {
   setPageTitle('Raya 篮球生活');
