@@ -13,7 +13,6 @@ export async function render(main) {
     <div class="tabs">
       <div class="tab active" data-type="points">总得分</div>
       <div class="tab" data-type="steals">抢断</div>
-      <div class="tab" data-type="assists">助攻</div>
       <div class="tab" data-type="rebounds">篮板</div>
     </div>
     <div id="lb-content"></div>

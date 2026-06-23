@@ -35,7 +35,6 @@ export async function render(main, params) {
         ${statCard('总篮板', t.total_rebounds)}
         ${statCard('场均篮板', (t.total_rebounds / gp).toFixed(1))}
         ${statCard('总抢断', t.total_steals)}
-        ${statCard('总助攻', t.total_assists)}
         ${statCard('比赛场次', gp)}
         ${statCard('两分球', t.total_2pt)}
         ${statCard('三分球', t.total_3pt)}

@@ -28,6 +28,7 @@ function init() {
       opponent TEXT NOT NULL,
       game_date TEXT NOT NULL,
       location TEXT DEFAULT '',
+      notes TEXT DEFAULT '',
       our_score INTEGER,
       opponent_score INTEGER,
       recorder_name TEXT DEFAULT '',
@@ -48,6 +49,11 @@ function init() {
       UNIQUE(game_id, player_id)
     );
   `);
+
+  // Migration: add notes column if not exists
+  try {
+    db.exec("ALTER TABLE games ADD COLUMN notes TEXT DEFAULT ''");
+  } catch (e) { /* column already exists */ }
 
   // Ensure default config exists
   const rc = db.prepare("SELECT value FROM config WHERE key = 'recorder_code'").get();
@@ -114,10 +120,10 @@ function getGame(gameId) {
   return { ...game, stats };
 }
 
-function createGame({ opponent, game_date, location }) {
+function createGame({ opponent, game_date, location, notes }) {
   const result = db.prepare(`
-    INSERT INTO games (opponent, game_date, location) VALUES (?, ?, ?)
-  `).run(opponent, game_date, location || '');
+    INSERT INTO games (opponent, game_date, location, notes) VALUES (?, ?, ?, ?)
+  `).run(opponent, game_date, location || '', notes || '');
   const gameId = result.lastInsertRowid;
 
   // Auto-create empty stats for all active players
@@ -131,7 +137,7 @@ function createGame({ opponent, game_date, location }) {
   return gameId;
 }
 
-function updateGame(gameId, { our_score, opponent_score, status, recorder_name, opponent, game_date, location }) {
+function updateGame(gameId, { our_score, opponent_score, status, recorder_name, opponent, game_date, location, notes }) {
   const game = db.prepare('SELECT * FROM games WHERE id = ?').get(gameId);
   if (!game) return null;
 
@@ -144,6 +150,7 @@ function updateGame(gameId, { our_score, opponent_score, status, recorder_name, 
   if (opponent !== undefined) { updates.push('opponent = ?'); values.push(opponent); }
   if (game_date !== undefined) { updates.push('game_date = ?'); values.push(game_date); }
   if (location !== undefined) { updates.push('location = ?'); values.push(location); }
+  if (notes !== undefined) { updates.push('notes = ?'); values.push(notes); }
   if (updates.length === 0) return game;
 
   values.push(gameId);
@@ -222,6 +229,49 @@ function getLeaderboard(type) {
   `).all();
 }
 
+function getDashboard() {
+  // Win/loss stats
+  const record = db.prepare(`
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN our_score > opponent_score THEN 1 ELSE 0 END) as wins,
+      SUM(CASE WHEN our_score < opponent_score THEN 1 ELSE 0 END) as losses
+    FROM games WHERE status = 'finished' AND our_score IS NOT NULL AND opponent_score IS NOT NULL
+  `).get();
+
+  // Top 3 points
+  const topPoints = db.prepare(`
+    SELECT p.id, p.number, p.name, COALESCE(SUM(gs.pts_2pt*2 + gs.pts_3pt*3 + gs.pts_1pt), 0) as total
+    FROM players p
+    JOIN game_stats gs ON p.id = gs.player_id
+    JOIN games g ON g.id = gs.game_id AND g.status = 'finished'
+    WHERE p.active = 1
+    GROUP BY p.id ORDER BY total DESC LIMIT 3
+  `).all();
+
+  // Top 3 steals
+  const topSteals = db.prepare(`
+    SELECT p.id, p.number, p.name, COALESCE(SUM(gs.steals), 0) as total
+    FROM players p
+    JOIN game_stats gs ON p.id = gs.player_id
+    JOIN games g ON g.id = gs.game_id AND g.status = 'finished'
+    WHERE p.active = 1
+    GROUP BY p.id ORDER BY total DESC LIMIT 3
+  `).all();
+
+  // Top 3 rebounds
+  const topRebounds = db.prepare(`
+    SELECT p.id, p.number, p.name, COALESCE(SUM(gs.rebounds), 0) as total
+    FROM players p
+    JOIN game_stats gs ON p.id = gs.player_id
+    JOIN games g ON g.id = gs.game_id AND g.status = 'finished'
+    WHERE p.active = 1
+    GROUP BY p.id ORDER BY total DESC LIMIT 3
+  `).all();
+
+  return { record, topPoints, topSteals, topRebounds };
+}
+
 module.exports = {
   init,
   getAllPlayers,
@@ -237,4 +287,5 @@ module.exports = {
   setAdminPassword,
   updateStat,
   getLeaderboard,
+  getDashboard,
 };

@@ -38,4 +38,7 @@ export const api = {
 
   // Leaderboard
   getLeaderboard: (type) => request(`/leaderboard?type=${type}`),
+
+  // Dashboard
+  getDashboard: () => request('/dashboard'),
 };

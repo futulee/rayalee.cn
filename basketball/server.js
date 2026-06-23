@@ -32,11 +32,11 @@ app.get(`${API}/games`, (_req, res) => {
 });
 
 app.post(`${API}/games`, (req, res) => {
-  const { opponent, game_date, location } = req.body;
+  const { opponent, game_date, location, notes } = req.body;
   if (!opponent || !game_date) {
     return res.status(400).json({ error: 'opponent and game_date are required' });
   }
-  const id = db.createGame({ opponent, game_date, location });
+  const id = db.createGame({ opponent, game_date, location, notes });
   res.status(201).json({ id });
 });
 
@@ -47,8 +47,8 @@ app.get(`${API}/games/:id`, (req, res) => {
 });
 
 app.put(`${API}/games/:id`, (req, res) => {
-  const { our_score, opponent_score, status, recorder_name, opponent, game_date, location } = req.body;
-  const game = db.updateGame(Number(req.params.id), { our_score, opponent_score, status, recorder_name, opponent, game_date, location });
+  const { our_score, opponent_score, status, recorder_name, opponent, game_date, location, notes } = req.body;
+  const game = db.updateGame(Number(req.params.id), { our_score, opponent_score, status, recorder_name, opponent, game_date, location, notes });
   if (!game) return res.status(404).json({ error: 'Game not found' });
   res.json(game);
 });
@@ -111,6 +111,12 @@ app.put(`${API}/games/:gameId/stats/:playerId`, (req, res) => {
   const stat = db.updateStat(Number(req.params.gameId), Number(req.params.playerId), field, Number(delta));
   if (!stat) return res.status(400).json({ error: 'Invalid field or data' });
   res.json(stat);
+});
+
+// --- Dashboard ---
+
+app.get(`${API}/dashboard`, (_req, res) => {
+  res.json(db.getDashboard());
 });
 
 // --- Leaderboard ---

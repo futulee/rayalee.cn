@@ -76,6 +76,7 @@ function renderScoreHeader(game) {
   header.innerHTML = `
     ${metaLine ? `<div style="font-size:.75rem;opacity:.7;margin-bottom:4px">${h(metaLine)}</div>` : ''}
     <div class="vs">深圳湾女篮 vs ${h(game.opponent)}</div>
+    ${game.notes ? `<div style="font-size:.8rem;margin-top:4px;color:#fbbf24;font-weight:600">🔴 ${h(game.notes)}</div>` : ''}
     ${resultTag ? `<div style="margin:6px 0">${resultTag}</div>` : ''}
     ${statusBadge}
     <div class="scores">${game.our_score ?? ourScore} : ${oppScore ?? '--'}</div>
@@ -157,6 +158,7 @@ function renderFooter(game) {
           <div class="form-date-wrap" style="flex:1;min-width:120px"><input class="form-input" type="date" id="edit-date" value="${game.game_date}" style="width:100%"></div>
         </div>
         <input class="form-input" id="edit-location" value="${h(game.location || '')}" placeholder="比赛地点（选填）" style="margin-top:6px" autocomplete="off">
+        <input class="form-input" id="edit-notes" value="${h(game.notes || '')}" placeholder="备注（选填，如：决赛）" style="margin-top:6px" autocomplete="off">
         <button class="btn btn-sm btn-outline" id="btn-save-info" style="margin-top:6px">保存信息</button>
       </div>
       <div class="score-editor">
@@ -180,9 +182,10 @@ function renderFooter(game) {
       const opponent = document.getElementById('edit-opponent').value.trim();
       const game_date = document.getElementById('edit-date').value;
       const location = document.getElementById('edit-location').value.trim();
+      const notes = document.getElementById('edit-notes').value.trim();
       if (!opponent || !game_date) { toast('对手和日期不能为空'); return; }
       try {
-        await api.updateGame(gameId, { opponent, game_date, location });
+        await api.updateGame(gameId, { opponent, game_date, location, notes });
         toast('比赛信息已更新');
         refreshData();
       } catch (e) { toast('更新失败'); }
@@ -267,7 +270,6 @@ function recorderPlayerCard(s) {
         ${statBtn(s.player_id, 'pts_3pt', '3分', s.pts_3pt)}
         ${statBtn(s.player_id, 'pts_1pt', '罚篮', s.pts_1pt)}
         ${statBtn(s.player_id, 'steals', '抢断', s.steals)}
-        ${statBtn(s.player_id, 'assists', '助攻', s.assists)}
         ${statBtn(s.player_id, 'rebounds', '篮板', s.rebounds)}
       </div>
     </div>`;
@@ -299,7 +301,6 @@ function viewerPlayerCard(s) {
         <span>3pt:${s.pts_3pt}</span>
         <span>罚:${s.pts_1pt}</span>
         <span>断:${s.steals}</span>
-        <span>助:${s.assists}</span>
         <span>板:${s.rebounds}</span>
       </div>
     </div>`;
