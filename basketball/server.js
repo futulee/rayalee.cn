@@ -97,7 +97,10 @@ app.post(`${API}/games/:id/claim`, (req, res) => {
   if (!game) return res.status(404).json({ error: 'Game not found' });
 
   const currentRecorder = game.recorder_name || '';
-  db.updateGame(Number(req.params.id), { recorder_name: name });
+  // Only set recorder_name on first claim; preserve original recorder on takeover
+  if (!currentRecorder) {
+    db.updateGame(Number(req.params.id), { recorder_name: name });
+  }
   res.json({ ok: true, replaced: currentRecorder || null });
 });
 
