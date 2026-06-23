@@ -4,12 +4,16 @@ import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '..
 let gameId, isRecorder = false, pollTimer = null;
 let claimName = '';
 let lastStateKey = '';
+let viewerSort = 'points'; // 'points' | 'steals' | 'rebounds'
+let pinnedPlayers = new Set();
 
 export async function render(main, params) {
   gameId = params.id;
   isRecorder = false;
   claimName = '';
   lastStateKey = '';
+  viewerSort = 'points';
+  pinnedPlayers = new Set(JSON.parse(localStorage.getItem(`bb_pins_${gameId}`) || '[]'));
 
   document.getElementById('breadcrumb-trail').innerHTML = '<a href="#/">篮球生活</a> <span class="sep">›</span> <span class="current">比赛详情</span>';
 
@@ -124,23 +128,49 @@ function renderClaimArea(game) {
   }
 }
 
+function togglePin(playerId) {
+  if (pinnedPlayers.has(playerId)) { pinnedPlayers.delete(playerId); }
+  else { pinnedPlayers.add(playerId); }
+  localStorage.setItem(`bb_pins_${gameId}`, JSON.stringify([...pinnedPlayers]));
+}
+
 function renderPlayers(game) {
   const el = document.getElementById('players-area');
   if (isRecorder) {
-    // Stable order by jersey number while recording
-    const sorted = [...game.stats].sort((a, b) => a.number - b.number);
+    const sorted = [...game.stats].sort((a, b) => {
+      const aPin = pinnedPlayers.has(a.player_id) ? 0 : 1;
+      const bPin = pinnedPlayers.has(b.player_id) ? 0 : 1;
+      if (aPin !== bPin) return aPin - bPin;
+      return a.number - b.number;
+    });
     el.innerHTML = sorted.map(s => recorderPlayerCard(s)).join('');
     el.querySelectorAll('.stat-btn').forEach(btn => {
       btn.addEventListener('click', handleStatClick);
     });
-  } else {
-    // Sort by points for viewers
-    const sorted = [...game.stats].sort((a, b) => {
-      const ptsA = a.pts_2pt * 2 + a.pts_3pt * 3 + a.pts_1pt;
-      const ptsB = b.pts_2pt * 2 + b.pts_3pt * 3 + b.pts_1pt;
-      return ptsB - ptsA;
+    el.querySelectorAll('.pin-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const pid = parseInt(btn.dataset.player);
+        togglePin(pid);
+        refreshData();
+      });
     });
-    el.innerHTML = sorted.map(s => viewerPlayerCard(s)).join('');
+  } else {
+    const sorted = [...game.stats].sort((a, b) => {
+      if (viewerSort === 'steals') return b.steals - a.steals;
+      if (viewerSort === 'rebounds') return b.rebounds - a.rebounds;
+      return (b.pts_2pt*2 + b.pts_3pt*3 + b.pts_1pt) - (a.pts_2pt*2 + a.pts_3pt*3 + a.pts_1pt);
+    });
+    el.innerHTML = `
+      <div style="display:flex;gap:4px;margin-bottom:8px;font-size:.75rem">
+        <button class="sort-tab${viewerSort==='points'?' active':''}" id="sort-points">总分</button>
+        <button class="sort-tab${viewerSort==='steals'?' active':''}" id="sort-steals">抢断</button>
+        <button class="sort-tab${viewerSort==='rebounds'?' active':''}" id="sort-rebounds">篮板</button>
+      </div>
+      ${sorted.map(s => viewerPlayerCard(s)).join('')}`;
+    document.getElementById('sort-points')?.addEventListener('click', () => { viewerSort='points'; refreshData(); });
+    document.getElementById('sort-steals')?.addEventListener('click', () => { viewerSort='steals'; refreshData(); });
+    document.getElementById('sort-rebounds')?.addEventListener('click', () => { viewerSort='rebounds'; refreshData(); });
   }
 }
 
@@ -258,8 +288,10 @@ function renderFooter(game) {
 
 function recorderPlayerCard(s) {
   const pts = s.pts_2pt * 2 + s.pts_3pt * 3 + s.pts_1pt;
+  const isPinned = pinnedPlayers.has(s.player_id);
   return `
     <div class="player-card" data-player-id="${s.player_id}">
+      <button class="pin-btn" data-player="${s.player_id}" title="${isPinned?'取消置顶':'置顶'}" style="background:none;border:none;cursor:pointer;font-size:.85rem;padding:0 2px;line-height:1;flex-shrink:0">${isPinned?'📌':'📍'}</button>
       <a href="#/player/${s.player_id}" class="pinfo" style="text-decoration:none;color:inherit">
         <div class="pnum">${s.number}</div>
         <div class="pname">${h(s.name)}</div>

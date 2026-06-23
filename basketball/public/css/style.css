@@ -292,6 +292,18 @@ input[type="date"].form-input {
 .score-editor input { width: 60px; padding: 8px; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; text-align: center; }
 .score-editor .sep { font-weight: 800; font-size: 1.2rem; }
 
+/* === Sort tabs === */
+.sort-tab {
+  padding: 4px 12px; border: 1px solid var(--border); border-radius: 12px;
+  background: #fff; font-size: .75rem; font-weight: 600; cursor: pointer;
+  color: var(--text-muted); transition: all .15s;
+}
+.sort-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* === Pin button === */
+.pin-btn { opacity: .4; transition: opacity .15s; }
+.pin-btn:hover { opacity: 1; }
+
 /* === Share image modal === */
 .share-img-container { text-align: center; }
 .share-img-container canvas { max-width: 100%; border-radius: 8px; }
