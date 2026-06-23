@@ -38,14 +38,14 @@ async function loadDashboard() {
 
     el.innerHTML = `
       <div class="card" style="padding:12px 14px">
-        <div style="font-weight:700;font-size:.85rem;color:var(--primary);margin-bottom:10px">深圳湾女篮 · 球队数据</div>
+        <div style="display:inline-block;font-weight:700;font-size:.85rem;color:#fff;background:linear-gradient(135deg,#f97316,#ea580c);padding:5px 14px;border-radius:12px;margin-bottom:10px">深圳湾女篮 · 球队数据</div>
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
           <canvas id="pie-chart" width="90" height="90" style="flex-shrink:0"></canvas>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:.82rem;line-height:1.8">
-            <div>总场次 <b>${r.total}</b></div>
-            <div>胜率 <b style="color:var(--primary)">${winRate}%</b></div>
-            <div>胜利 <b style="color:#ef4444">${r.wins}</b></div>
-            <div>失利 <b style="color:#22c55e">${r.losses}</b></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:.9rem;line-height:1.8">
+            <div>总场次 <b style="font-size:1.05rem">${r.total}</b></div>
+            <div>胜率 <b style="color:#ef4444;font-size:1.05rem">${winRate}%</b></div>
+            <div>胜利 <b style="color:#ef4444;font-size:1.05rem">${r.wins}</b></div>
+            <div>失利 <b style="color:#22c55e;font-size:1.05rem">${r.losses}</b></div>
           </div>
         </div>
         <div style="display:flex;gap:6px">
