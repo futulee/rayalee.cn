@@ -20,7 +20,7 @@ async function loadHonors() {
     el.innerHTML = `
       <div class="card" style="padding:12px 14px;margin-top:8px">
         <div style="font-weight:700;font-size:.85rem;color:var(--text-muted);margin-bottom:8px">🏆 球队荣誉</div>
-        ${honors.map(h => `<div style="padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:.85rem">🏅 ${h(h.content)}</div>`).join('')}
+        ${honors.map(r => `<div style="padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:.85rem">🏅 ${h(r.content)}</div>`).join('')}
       </div>`;
   } catch (e) { el.innerHTML = ''; }
 }

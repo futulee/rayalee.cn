@@ -2,8 +2,8 @@ import { api } from '../api.js?v=31';
 import { navigate } from '../router.js?v=31';
 import { setPageTitle, toast, lockBody, unlockBody } from '../share.js?v=31';
 
-let authed = false;
-let adminPwd = '';
+let authed = sessionStorage.getItem('bb_admin_auth') === '1';
+let adminPwd = sessionStorage.getItem('bb_admin_pwd') || '';
 
 export async function render(main) {
   setPageTitle('球队管理');
@@ -25,6 +25,8 @@ export async function render(main) {
         if (pwd !== password) { toast('密码错误'); return; }
         authed = true;
         adminPwd = pwd;
+        sessionStorage.setItem('bb_admin_auth', '1');
+        sessionStorage.setItem('bb_admin_pwd', pwd);
         render(main);
       } catch (e) { toast('验证失败'); }
     });
@@ -50,10 +52,10 @@ async function loadHonorsAdmin() {
           <button class="btn btn-sm btn-primary" id="btn-add-honor">+ 添加</button>
         </div>
         ${honors.length === 0 ? '<div style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:10px">暂无荣誉记录</div>' : ''}
-        ${honors.map(h => `
+        ${honors.map(r => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:.85rem">
-            <span>🏅 ${h(h.content)}</span>
-            <button class="del-honor-btn" data-id="${h.id}" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:.85rem">✕</button>
+            <span>🏅 ${h(r.content)}</span>
+            <button class="del-honor-btn" data-id="${r.id}" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:.85rem">✕</button>
           </div>
         `).join('')}
       </div>`;
