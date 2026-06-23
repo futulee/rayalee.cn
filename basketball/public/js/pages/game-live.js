@@ -291,7 +291,7 @@ function recorderPlayerCard(s) {
   const isPinned = pinnedPlayers.has(s.player_id);
   return `
     <div class="player-card" data-player-id="${s.player_id}">
-      <button class="pin-btn" data-player="${s.player_id}" title="${isPinned?'取消置顶':'置顶'}" style="background:none;border:none;cursor:pointer;font-size:.85rem;padding:0 2px;line-height:1;flex-shrink:0">${isPinned?'📌':'📍'}</button>
+      <button class="pin-btn" data-player="${s.player_id}" title="${isPinned?'取消置顶':'置顶到最前'}" style="background:none;border:none;cursor:pointer;font-size:.65rem;padding:0 3px;line-height:1;flex-shrink:0;color:${isPinned?'var(--primary)':'#ccc'}">${isPinned?'▼':'▲'}</button>
       <a href="#/player/${s.player_id}" class="pinfo" style="text-decoration:none;color:inherit">
         <div class="pnum">${s.number}</div>
         <div class="pname">${h(s.name)}</div>

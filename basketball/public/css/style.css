@@ -301,8 +301,7 @@ input[type="date"].form-input {
 .sort-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 /* === Pin button === */
-.pin-btn { opacity: .4; transition: opacity .15s; }
-.pin-btn:hover { opacity: 1; }
+.pin-btn { width: 16px; padding: 0 !important; text-align: center; flex-shrink: 0; }
 
 /* === Share image modal === */
 .share-img-container { text-align: center; }
