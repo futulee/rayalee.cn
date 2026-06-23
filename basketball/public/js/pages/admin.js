@@ -45,11 +45,11 @@ async function loadHonorsAdmin() {
   const el = document.getElementById('admin-honors');
   try {
     const honors = await api.getHonors();
-    const sortedHonors = [...honors].sort((a, b) => {
-      const da = (a.content.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/) || [])[0] || '';
-      const db = (b.content.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/) || [])[0] || '';
-      return db.localeCompare(da);
-    });
+    const parseDate = (s) => {
+      const m = s.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+      return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(0);
+    };
+    const sortedHonors = [...honors].sort((a, b) => parseDate(b.content) - parseDate(a.content));
     el.innerHTML = `
       <div class="card" style="padding:12px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
