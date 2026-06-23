@@ -50,10 +50,17 @@ function init() {
     );
   `);
 
-  // Migration: add notes column if not exists
-  try {
-    db.exec("ALTER TABLE games ADD COLUMN notes TEXT DEFAULT ''");
-  } catch (e) { /* column already exists */ }
+  // Migrations
+  try { db.exec("ALTER TABLE games ADD COLUMN notes TEXT DEFAULT ''"); } catch (e) {}
+
+  // Honors table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS honors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    )
+  `);
 
   // Ensure default config exists
   const rc = db.prepare("SELECT value FROM config WHERE key = 'recorder_code'").get();
@@ -272,6 +279,20 @@ function getDashboard() {
   return { record, topPoints, topSteals, topRebounds };
 }
 
+// --- Honors ---
+
+function getHonors() {
+  return db.prepare('SELECT * FROM honors ORDER BY created_at DESC').all();
+}
+
+function addHonor(content) {
+  return db.prepare('INSERT INTO honors (content) VALUES (?)').run(content);
+}
+
+function deleteHonor(id) {
+  db.prepare('DELETE FROM honors WHERE id = ?').run(id);
+}
+
 module.exports = {
   init,
   getAllPlayers,
@@ -288,4 +309,7 @@ module.exports = {
   updateStat,
   getLeaderboard,
   getDashboard,
+  getHonors,
+  addHonor,
+  deleteHonor,
 };

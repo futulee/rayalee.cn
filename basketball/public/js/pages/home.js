@@ -4,11 +4,25 @@ import { setPageTitle } from '../share.js?v=31';
 
 export async function render(main) {
   setPageTitle('Raya 篮球生活');
-  document.getElementById('breadcrumb-trail').innerHTML = '<span class="current">篮球生活</span>';
+  document.getElementById('breadcrumb-trail').innerHTML = '<span class="current">篮球生活</span> <a href="#/admin" style="font-size:.7rem;color:rgba(255,255,255,.4);text-decoration:none;margin-left:6px" title="球队管理">⚙</a>';
 
-  main.innerHTML = '<div id="dashboard"></div><div id="home-games"></div>';
+  main.innerHTML = '<div id="dashboard"></div><div id="home-games"></div><div id="honors-section"></div>';
   await loadDashboard();
   await loadRecentGames();
+  await loadHonors();
+}
+
+async function loadHonors() {
+  const el = document.getElementById('honors-section');
+  try {
+    const honors = await api.getHonors();
+    if (honors.length === 0) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div class="card" style="padding:12px 14px;margin-top:8px">
+        <div style="font-weight:700;font-size:.85rem;color:var(--text-muted);margin-bottom:8px">🏆 球队荣誉</div>
+        ${honors.map(h => `<div style="padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:.85rem">🏅 ${h(h.content)}</div>`).join('')}
+      </div>`;
+  } catch (e) { el.innerHTML = ''; }
 }
 
 async function loadDashboard() {

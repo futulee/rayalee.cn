@@ -119,6 +119,27 @@ app.get(`${API}/dashboard`, (_req, res) => {
   res.json(db.getDashboard());
 });
 
+// --- Honors ---
+
+app.get(`${API}/honors`, (_req, res) => {
+  res.json(db.getHonors());
+});
+
+app.post(`${API}/honors`, (req, res) => {
+  const { content, password } = req.body;
+  if (!content) return res.status(400).json({ error: 'content required' });
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  const result = db.addHonor(content);
+  res.status(201).json({ id: result.lastInsertRowid });
+});
+
+app.delete(`${API}/honors/:id`, (req, res) => {
+  const { password } = req.body;
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  db.deleteHonor(Number(req.params.id));
+  res.json({ ok: true });
+});
+
 // --- Leaderboard ---
 
 app.get(`${API}/leaderboard`, (req, res) => {

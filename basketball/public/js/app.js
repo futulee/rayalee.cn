@@ -4,6 +4,7 @@ import { render as gamesPage } from './pages/games.js?v=31';
 import { render as gameLivePage, cleanup as gameLiveCleanup } from './pages/game-live.js?v=31';
 import { render as leaderboardPage } from './pages/leaderboard.js?v=31';
 import { render as playerPage } from './pages/player.js?v=31';
+import { render as adminPage } from './pages/admin.js?v=31';
 
 route('/', (main) => { showBottomNav(true, 'home'); homePage(main); });
 route('/games', (main) => { showBottomNav(true, 'games'); gamesPage(main); });
@@ -17,6 +18,10 @@ route('/game/:id', (main, params) => {
 route('/player/:id', (main, params) => {
   showBottomNav(false);
   playerPage(main, params);
+});
+route('/admin', (main) => {
+  showBottomNav(false);
+  adminPage(main);
 });
 
 function showBottomNav(show, active) {
