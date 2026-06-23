@@ -68,18 +68,21 @@ async function loadDashboard() {
       const c = document.getElementById('pie-chart');
       if (!c) return;
       const ctx = c.getContext('2d');
-      const cx = 45, cy = 45, r = 38;
+      const cx = 45, cy = 45, outerR = 38, innerR = 26;
       const total = r.wins + r.losses || 1;
       const winAngle = (r.wins / total) * Math.PI * 2;
-      // Full circle background
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-      ctx.fillStyle = '#e5e7eb'; ctx.fill();
-      // Wins
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + winAngle);
-      ctx.fillStyle = '#16a34a'; ctx.fill();
+      // Donut ring - losses (green) full ring first
+      ctx.beginPath(); ctx.arc(cx, cy, outerR, 0, Math.PI*2);
+      ctx.arc(cx, cy, innerR, Math.PI*2, 0, true);
+      ctx.fillStyle = '#22c55e'; ctx.fill();
+      // Wins (red) on top
+      ctx.beginPath(); ctx.moveTo(cx + innerR, cy);
+      ctx.arc(cx, cy, outerR, -Math.PI/2, -Math.PI/2 + winAngle);
+      ctx.arc(cx, cy, innerR, -Math.PI/2 + winAngle, -Math.PI/2, true);
+      ctx.fillStyle = '#ef4444'; ctx.fill();
       // Center text
-      ctx.fillStyle = '#374151'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(winRate + '%', cx, cy + 6);
+      ctx.fillStyle = '#374151'; ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(winRate + '%', cx, cy + 5);
     }, 100);
 
   } catch (e) { el.innerHTML = ''; }
