@@ -38,6 +38,7 @@ async function loadDashboard() {
 
     el.innerHTML = `
       <div class="card" style="padding:12px 14px">
+        <div style="font-weight:700;font-size:.85rem;color:var(--primary);margin-bottom:10px">深圳湾女篮 · 球队数据</div>
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
           <canvas id="pie-chart" width="90" height="90" style="flex-shrink:0"></canvas>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:.82rem;line-height:1.8">
