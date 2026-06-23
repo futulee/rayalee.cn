@@ -64,7 +64,7 @@ function lbRow(p, i) {
   return `
     <div class="lb-row" data-id="${p.id}">
       <div class="lb-rank${rankClass}">${i + 1}</div>
-      <div class="lb-num">#${p.number}</div>
+      <div class="lb-num">${p.number}</div>
       <div class="lb-name">${h(p.name)}</div>
       <div style="font-size:.75rem;color:var(--text-muted);min-width:40px;text-align:right">${p.games_played}场</div>
       <div class="lb-total">${p.total}</div>

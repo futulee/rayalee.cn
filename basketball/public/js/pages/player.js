@@ -26,7 +26,7 @@ export async function render(main, params) {
 
     main.innerHTML = `
       <div class="pd-header">
-        <div class="pd-num">#${player.number}</div>
+        <div class="pd-num">${player.number}</div>
         <div class="pd-name">${h(player.name)}</div>
       </div>
       <div class="pd-stats">
