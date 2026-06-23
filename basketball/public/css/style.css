@@ -185,9 +185,9 @@ input[type="date"].form-input {
 }
 .player-card .pinfo { min-width: 40px; max-width: 44px; text-align: center; }
 /* Jersey number badge */
-.jersey-num, .player-card .pnum, .player-card-compact .pnum, .lb-num, .pd-header .pd-num {
+.player-card .pnum, .player-card-compact .pnum, .lb-num, .pd-header .pd-num {
   display: inline-flex; align-items: center; justify-content: center;
-  background: #dbeafe; color: #2563eb;
+  background: #e0e7ff; color: #4f5fa0;
   font-weight: 800; border-radius: 6px;
   min-width: 32px; padding: 2px 6px; line-height: 1.3;
 }
