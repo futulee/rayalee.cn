@@ -295,13 +295,13 @@ function viewerPlayerCard(s) {
         <div class="pnum">${s.number}</div>
         <div class="pname">${h(s.name)}</div>
       </a>
-      <div class="pstats">
-        <span>${pts}分</span>
+      <div class="pstats" style="font-size:.9rem">
+        <span style="color:var(--primary);font-weight:800">${pts}分</span>
         <span>2pt:${s.pts_2pt}</span>
         <span>3pt:${s.pts_3pt}</span>
         <span>罚:${s.pts_1pt}</span>
-        <span>断:${s.steals}</span>
-        <span>板:${s.rebounds}</span>
+        <span style="color:#2563eb;font-weight:700">断:${s.steals}</span>
+        <span style="color:#ca8a04;font-weight:700">板:${s.rebounds}</span>
       </div>
     </div>`;
 }

@@ -38,14 +38,13 @@ async function loadDashboard() {
 
     el.innerHTML = `
       <div class="card" style="padding:12px 14px">
-        <div style="font-weight:700;font-size:.9rem;margin-bottom:10px">📊 数据看板</div>
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
           <canvas id="pie-chart" width="90" height="90" style="flex-shrink:0"></canvas>
-          <div style="font-size:.82rem;line-height:2">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:.82rem;line-height:1.8">
             <div>总场次 <b>${r.total}</b></div>
+            <div>胜率 <b style="color:var(--primary)">${winRate}%</b></div>
             <div>胜利 <b style="color:#16a34a">${r.wins}</b></div>
             <div>失利 <b style="color:#dc2626">${r.losses}</b></div>
-            <div>胜率 <b style="color:var(--primary)">${winRate}%</b></div>
           </div>
         </div>
         <div style="display:flex;gap:6px">
@@ -69,15 +68,15 @@ async function loadDashboard() {
       const c = document.getElementById('pie-chart');
       if (!c) return;
       const ctx = c.getContext('2d');
-      const cx = 45, cy = 45, r = 40;
+      const cx = 45, cy = 45, r = 38;
       const total = r.wins + r.losses || 1;
       const winAngle = (r.wins / total) * Math.PI * 2;
+      // Full circle background
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+      ctx.fillStyle = '#e5e7eb'; ctx.fill();
       // Wins
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + winAngle);
       ctx.fillStyle = '#16a34a'; ctx.fill();
-      // Losses
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, -Math.PI/2 + winAngle, -Math.PI/2 + Math.PI*2);
-      ctx.fillStyle = '#e5e7eb'; ctx.fill();
       // Center text
       ctx.fillStyle = '#374151'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(winRate + '%', cx, cy + 6);

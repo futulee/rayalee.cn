@@ -98,18 +98,18 @@ main { max-width: 640px; margin: 0 auto; padding: 10px; position: relative; z-in
 /* === Stat buttons (recorder mode) === */
 .stat-btn {
   display: flex; flex-direction: column; align-items: center;
-  min-width: 44px; border: 1px solid var(--border); border-radius: 9px;
+  min-width: 52px; border: 1px solid var(--border); border-radius: 9px;
   background: var(--bg); overflow: hidden;
   cursor: pointer; user-select: none; -webkit-user-select: none;
   transition: all .1s;
 }
 .stat-btn .stat-main {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; padding: 8px 4px 4px; width: 100%; flex: 1;
-  min-height: 40px;
+  justify-content: center; padding: 10px 6px 6px; width: 100%; flex: 1;
+  min-height: 44px;
 }
-.stat-btn .stat-main .slbl { font-size: .68rem; font-weight: 700; color: var(--text-muted); }
-.stat-btn .stat-main .sval { font-size: 1.1rem; font-weight: 800; line-height: 1.2; }
+.stat-btn .stat-main .slbl { font-size: .72rem; font-weight: 700; color: var(--text-muted); }
+.stat-btn .stat-main .sval { font-size: 1.2rem; font-weight: 800; line-height: 1.2; }
 .stat-btn .stat-minus {
   display: flex; align-items: center; justify-content: center;
   width: 100%; padding: 1px 0; font-size: .75rem; font-weight: 700;
@@ -186,7 +186,7 @@ input[type="date"].form-input {
 .player-card .pinfo { min-width: 40px; max-width: 44px; text-align: center; }
 .player-card .pnum { font-size: 1.1rem; font-weight: 800; color: var(--primary); line-height: 1.2; }
 .player-card .pname { font-size: .72rem; font-weight: 600; }
-.player-card .stats-grid { display: flex; gap: 4px; flex: 1; justify-content: flex-end; flex-wrap: nowrap; }
+.player-card .stats-grid { display: flex; gap: 6px; flex: 1; justify-content: flex-end; flex-wrap: nowrap; }
 
 /* === Player Card (compact, viewer mode) === */
 .player-card-compact {
