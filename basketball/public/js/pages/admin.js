@@ -45,14 +45,19 @@ async function loadHonorsAdmin() {
   const el = document.getElementById('admin-honors');
   try {
     const honors = await api.getHonors();
+    const sortedHonors = [...honors].sort((a, b) => {
+      const da = (a.content.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/) || [])[0] || '';
+      const db = (b.content.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/) || [])[0] || '';
+      return db.localeCompare(da);
+    });
     el.innerHTML = `
       <div class="card" style="padding:12px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span style="font-weight:700;font-size:.9rem">🏆 球队荣誉</span>
           <button class="btn btn-sm btn-primary" id="btn-add-honor">+ 添加</button>
         </div>
-        ${honors.length === 0 ? '<div style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:10px">暂无荣誉记录</div>' : ''}
-        ${honors.map(r => `
+        ${sortedHonors.length === 0 ? '<div style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:10px">暂无荣誉记录</div>' : ''}
+        ${sortedHonors.map(r => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:.85rem">
             <span>🏅 ${h(r.content)}</span>
             <button class="del-honor-btn" data-id="${r.id}" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:.85rem">✕</button>

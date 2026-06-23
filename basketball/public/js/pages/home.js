@@ -24,10 +24,16 @@ async function loadDashboard() {
       `<div style="font-size:.75rem;line-height:1.7"><span style="color:#9ca3af">${i+1}.</span> <a href="#/player/${p.id}" style="color:inherit;text-decoration:none">${h(p.name)}</a> <span style="color:var(--primary);font-weight:700">${p.total}${unit}</span></div>`
     ).join('');
 
-    const honorsHtml = honors.length > 0 ? `
+    // Sort honors by date in content (newest first)
+    const sortedHonors = [...honors].sort((a, b) => {
+      const da = (a.content.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/) || [])[0] || '';
+      const db = (b.content.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/) || [])[0] || '';
+      return db.localeCompare(da);
+    });
+    const honorsHtml = sortedHonors.length > 0 ? `
       <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f3f4f6">
         <div style="font-weight:700;font-size:.8rem;color:var(--text-muted);margin-bottom:6px">🏆 球队荣誉</div>
-        ${honors.map(r => `<div style="font-size:.8rem;padding:2px 0">🏅 ${h(r.content)}</div>`).join('')}
+        ${sortedHonors.map(r => `<div style="font-size:.8rem;padding:2px 0">🏅 ${h(r.content)}</div>`).join('')}
       </div>` : '';
 
     el.innerHTML = `
