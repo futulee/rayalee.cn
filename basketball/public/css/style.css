@@ -43,8 +43,8 @@ body::before {
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bn-item {
-  flex: 1; text-align: center; padding: 12px 0 14px;
-  background: none; border: none; font-size: .9rem; font-weight: 600;
+  flex: 1; text-align: center; padding: 10px 0 12px;
+  background: none; border: none; font-size: .82rem; font-weight: 600;
   color: var(--text-muted); cursor: pointer; transition: color .15s;
 }
 .bn-item.active { color: var(--primary); }

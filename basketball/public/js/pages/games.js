@@ -3,11 +3,10 @@ import { navigate } from '../router.js?v=31';
 import { toast, setPageTitle, lockBody, unlockBody } from '../share.js?v=31';
 
 export async function render(main) {
-  setPageTitle('Raya 篮球生活');
-  document.getElementById('breadcrumb-trail').innerHTML = '<span class="current">篮球生活</span>';
+  setPageTitle('比赛列表');
+  document.getElementById('breadcrumb-trail').innerHTML = '<a href="#/">篮球生活</a> <span class="sep">›</span> <span class="current">比赛列表</span>';
 
   main.innerHTML = `
-    <div id="dashboard"></div>
     <div id="games-list"></div>
     <div style="text-align:center;padding:16px">
       <button class="btn btn-primary btn-lg" id="btn-new-game">+ 新建比赛</button>
@@ -15,85 +14,11 @@ export async function render(main) {
     <div id="modal-new-game" class="modal-overlay" style="display:none"></div>
   `;
 
-  await loadDashboard();
   await loadGames();
 
   document.getElementById('btn-new-game').addEventListener('click', () => {
     showNewGameModal();
   });
-}
-
-async function loadDashboard() {
-  const el = document.getElementById('dashboard');
-  try {
-    const d = await api.getDashboard();
-    if (!d.record || d.record.total === 0) { el.innerHTML = ''; return; }
-
-    const r = d.record;
-    const winRate = r.total > 0 ? ((r.wins / r.total) * 100).toFixed(1) : 0;
-
-    const topRow = (data, label, unit) => data.map((p, i) =>
-      `<div style="font-size:.8rem;line-height:1.8"><span style="color:#9ca3af">${i+1}.</span> ${h(p.name)} <span style="color:var(--primary);font-weight:700">${p.total}${unit}</span></div>`
-    ).join('');
-
-    el.innerHTML = `
-      <div class="card" style="padding:12px 14px">
-        <div style="display:inline-block;font-weight:700;font-size:.85rem;color:#fff;background:linear-gradient(135deg,#f97316,#ea580c);padding:5px 14px;border-radius:12px;margin-bottom:10px">深圳湾女篮 · 球队数据</div>
-        <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
-          <canvas id="pie-chart" width="90" height="90" style="flex-shrink:0"></canvas>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:.9rem;line-height:1.8">
-            <div>总场次 <b style="font-size:1.05rem">${r.total}</b></div>
-            <div>胜率 <b style="color:#ef4444;font-size:1.05rem">${winRate}%</b></div>
-            <div>胜利 <b style="color:#ef4444;font-size:1.05rem">${r.wins}</b></div>
-            <div>失利 <b style="color:#22c55e;font-size:1.05rem">${r.losses}</b></div>
-          </div>
-        </div>
-        <div style="display:flex;gap:6px">
-          <div style="flex:1;background:#f0fdf4;border-radius:8px;padding:8px">
-            <div style="font-size:.7rem;color:#16a34a;font-weight:700;margin-bottom:4px">得分 TOP3</div>
-            ${topRow(d.topPoints, '得分', '分')}
-          </div>
-          <div style="flex:1;background:#eff6ff;border-radius:8px;padding:8px">
-            <div style="font-size:.7rem;color:#2563eb;font-weight:700;margin-bottom:4px">抢断 TOP3</div>
-            ${topRow(d.topSteals, '抢断', '次')}
-          </div>
-          <div style="flex:1;background:#fefce8;border-radius:8px;padding:8px">
-            <div style="font-size:.7rem;color:#ca8a04;font-weight:700;margin-bottom:4px">篮板 TOP3</div>
-            ${topRow(d.topRebounds, '篮板', '个')}
-          </div>
-        </div>
-      </div>`;
-
-    // Draw pie chart
-    setTimeout(() => {
-      const c = document.getElementById('pie-chart');
-      if (!c) return;
-      const ctx = c.getContext('2d');
-      const cx = 45, cy = 45, outerR = 38, innerR = 26;
-      const total = r.wins + r.losses || 1;
-      const startAngle = -Math.PI / 2;
-      const winArc = (r.wins / total) * Math.PI * 2;
-      // Losses (green) — full donut base
-      ctx.beginPath();
-      ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
-      ctx.arc(cx, cy, innerR, Math.PI * 2, 0, true);
-      ctx.fillStyle = '#22c55e';
-      ctx.fill();
-      // Wins (red) — arc on top
-      if (r.wins > 0) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, outerR, startAngle, startAngle + winArc);
-        ctx.arc(cx, cy, innerR, startAngle + winArc, startAngle, true);
-        ctx.closePath();
-        ctx.fillStyle = '#ef4444';
-        ctx.fill();
-      }
-      // Center text
-      ctx.fillStyle = '#374151'; ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(winRate + '%', cx, cy + 5);
-    }, 100);
-
-  } catch (e) { el.innerHTML = ''; }
 }
 
 async function loadGames() {
