@@ -26,7 +26,7 @@ async function loadDashboard() {
 
     // Sort honors by date in content (newest first)
     const parseDate = (s) => {
-      const m = s.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+      const m = s.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
       return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(0);
     };
     const sortedHonors = [...honors].sort((a, b) => parseDate(b.content) - parseDate(a.content));
