@@ -253,7 +253,7 @@ function getDashboard() {
     JOIN game_stats gs ON p.id = gs.player_id
     JOIN games g ON g.id = gs.game_id AND g.status = 'finished'
     WHERE p.active = 1
-    GROUP BY p.id ORDER BY total DESC LIMIT 3
+    GROUP BY p.id ORDER BY total DESC LIMIT 5
   `).all();
 
   // Top 3 steals
@@ -263,7 +263,7 @@ function getDashboard() {
     JOIN game_stats gs ON p.id = gs.player_id
     JOIN games g ON g.id = gs.game_id AND g.status = 'finished'
     WHERE p.active = 1
-    GROUP BY p.id ORDER BY total DESC LIMIT 3
+    GROUP BY p.id ORDER BY total DESC LIMIT 5
   `).all();
 
   // Top 3 rebounds
@@ -273,7 +273,7 @@ function getDashboard() {
     JOIN game_stats gs ON p.id = gs.player_id
     JOIN games g ON g.id = gs.game_id AND g.status = 'finished'
     WHERE p.active = 1
-    GROUP BY p.id ORDER BY total DESC LIMIT 3
+    GROUP BY p.id ORDER BY total DESC LIMIT 5
   `).all();
 
   return { record, topPoints, topSteals, topRebounds };

@@ -6,37 +6,29 @@ export async function render(main) {
   setPageTitle('Raya 篮球生活');
   document.getElementById('breadcrumb-trail').innerHTML = '<span class="current">篮球生活</span> <a href="#/admin" style="font-size:.7rem;color:rgba(255,255,255,.4);text-decoration:none;margin-left:6px" title="球队管理">⚙</a>';
 
-  main.innerHTML = '<div id="dashboard"></div><div id="home-games"></div><div id="honors-section"></div>';
+  main.innerHTML = '<div id="dashboard"></div><div id="home-games"></div>';
   await loadDashboard();
   await loadRecentGames();
-  await loadHonors();
-}
-
-async function loadHonors() {
-  const el = document.getElementById('honors-section');
-  try {
-    const honors = await api.getHonors();
-    if (honors.length === 0) { el.innerHTML = ''; return; }
-    el.innerHTML = `
-      <div class="card" style="padding:12px 14px;margin-top:8px">
-        <div style="font-weight:700;font-size:.85rem;color:var(--text-muted);margin-bottom:8px">🏆 球队荣誉</div>
-        ${honors.map(r => `<div style="padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:.85rem">🏅 ${h(r.content)}</div>`).join('')}
-      </div>`;
-  } catch (e) { el.innerHTML = ''; }
 }
 
 async function loadDashboard() {
   const el = document.getElementById('dashboard');
   try {
-    const d = await api.getDashboard();
+    const [d, honors] = await Promise.all([api.getDashboard(), api.getHonors()]);
     if (!d.record || d.record.total === 0) { el.innerHTML = ''; return; }
 
     const r = d.record;
     const winRate = r.total > 0 ? ((r.wins / r.total) * 100).toFixed(1) : 0;
 
-    const topRow = (data, label, unit) => data.map((p, i) =>
-      `<div style="font-size:.8rem;line-height:1.8"><span style="color:#9ca3af">${i+1}.</span> ${h(p.name)} <span style="color:var(--primary);font-weight:700">${p.total}${unit}</span></div>`
+    const topRow = (data, unit) => data.map((p, i) =>
+      `<div style="font-size:.75rem;line-height:1.7"><span style="color:#9ca3af">${i+1}.</span> ${h(p.name)} <span style="color:var(--primary);font-weight:700">${p.total}${unit}</span></div>`
     ).join('');
+
+    const honorsHtml = honors.length > 0 ? `
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f3f4f6">
+        <div style="font-weight:700;font-size:.8rem;color:var(--text-muted);margin-bottom:6px">🏆 球队荣誉</div>
+        ${honors.map(r => `<div style="font-size:.8rem;padding:2px 0">🏅 ${h(r.content)}</div>`).join('')}
+      </div>` : '';
 
     el.innerHTML = `
       <div class="card" style="padding:12px 14px">
@@ -54,18 +46,19 @@ async function loadDashboard() {
         </div>
         <div style="display:flex;gap:6px">
           <div style="flex:1;background:#f0fdf4;border-radius:8px;padding:8px">
-            <div style="font-size:.7rem;color:#16a34a;font-weight:700;margin-bottom:4px">得分 TOP3</div>
-            ${topRow(d.topPoints, '得分', '分')}
+            <div style="font-size:.7rem;color:#16a34a;font-weight:700;margin-bottom:4px">得分 TOP5</div>
+            ${topRow(d.topPoints, '分')}
           </div>
           <div style="flex:1;background:#eff6ff;border-radius:8px;padding:8px">
-            <div style="font-size:.7rem;color:#2563eb;font-weight:700;margin-bottom:4px">抢断 TOP3</div>
-            ${topRow(d.topSteals, '抢断', '次')}
+            <div style="font-size:.7rem;color:#2563eb;font-weight:700;margin-bottom:4px">抢断 TOP5</div>
+            ${topRow(d.topSteals, '次')}
           </div>
           <div style="flex:1;background:#fefce8;border-radius:8px;padding:8px">
-            <div style="font-size:.7rem;color:#ca8a04;font-weight:700;margin-bottom:4px">篮板 TOP3</div>
-            ${topRow(d.topRebounds, '篮板', '个')}
+            <div style="font-size:.7rem;color:#ca8a04;font-weight:700;margin-bottom:4px">篮板 TOP5</div>
+            ${topRow(d.topRebounds, '个')}
           </div>
         </div>
+        ${honorsHtml}
       </div>`;
 
     setTimeout(() => {
