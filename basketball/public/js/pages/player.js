@@ -71,9 +71,8 @@ export async function render(main, params) {
               <div style="font-weight:700">${g.our_score ?? '--'} : ${g.opponent_score ?? '--'}</div>
               <div style="font-size:.8rem;color:var(--primary)">
                 ${g.pts_2pt * 2 + g.pts_3pt * 3 + g.pts_1pt}分
-                ${g.pts_2pt ? ` 2pt:${g.pts_2pt}` : ''}
-                ${g.pts_3pt ? ` 3pt:${g.pts_3pt}` : ''}
-                ${g.pts_1pt ? ` 罚:${g.pts_1pt}` : ''}
+                <span style="color:#2563eb">断${g.steals}</span>
+                <span style="color:#ca8a04"> 板${g.rebounds}</span>
               </div>
             </div>
           </div>

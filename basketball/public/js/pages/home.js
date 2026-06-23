@@ -21,7 +21,7 @@ async function loadDashboard() {
     const winRate = r.total > 0 ? ((r.wins / r.total) * 100).toFixed(1) : 0;
 
     const topRow = (data, unit) => data.map((p, i) =>
-      `<div style="font-size:.75rem;line-height:1.7"><span style="color:#9ca3af">${i+1}.</span> ${h(p.name)} <span style="color:var(--primary);font-weight:700">${p.total}${unit}</span></div>`
+      `<div style="font-size:.75rem;line-height:1.7"><span style="color:#9ca3af">${i+1}.</span> <a href="#/player/${p.id}" style="color:inherit;text-decoration:none">${h(p.name)}</a> <span style="color:var(--primary);font-weight:700">${p.total}${unit}</span></div>`
     ).join('');
 
     const honorsHtml = honors.length > 0 ? `
