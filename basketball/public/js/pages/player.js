@@ -29,6 +29,7 @@ export async function render(main, params) {
         <div class="pd-num">${player.number}</div>
         <div class="pd-name">${h(player.name)}</div>
       </div>
+      <div style="text-align:center;font-size:.8rem;color:var(--text-muted);margin-bottom:12px">共参加 <b style="color:var(--primary)">${gp}</b> 场比赛</div>
       <div class="pd-stats">
         ${statCard('总得分', totalPts)}
         ${statCard('总抢断', t.total_steals)}
@@ -39,7 +40,6 @@ export async function render(main, params) {
         ${statCard('两分球', t.total_2pt)}
         ${statCard('三分球', t.total_3pt)}
         ${statCard('罚篮', t.total_1pt)}
-        ${statCard('比赛场次', gp)}
       </div>
       <div style="text-align:center;padding:10px 0">
         <button class="btn btn-outline btn-sm" id="btn-player-share-img">📸 生成分享图片</button>
