@@ -45,5 +45,6 @@ export const api = {
   // Honors
   getHonors: () => request('/honors'),
   addHonor: (content, password) => request('/honors', { method: 'POST', body: JSON.stringify({ content, password }) }),
+  updateHonor: (id, content, password) => request(`/honors/${id}`, { method: 'PUT', body: JSON.stringify({ content, password }) }),
   deleteHonor: (id, password) => request(`/honors/${id}`, { method: 'DELETE', body: JSON.stringify({ password }) }),
 };

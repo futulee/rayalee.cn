@@ -97,10 +97,7 @@ app.post(`${API}/games/:id/claim`, (req, res) => {
   if (!game) return res.status(404).json({ error: 'Game not found' });
 
   const currentRecorder = game.recorder_name || '';
-  // Only set recorder_name on first claim; preserve original recorder on takeover
-  if (!currentRecorder) {
-    db.updateGame(Number(req.params.id), { recorder_name: name });
-  }
+  db.updateGame(Number(req.params.id), { recorder_name: name });
   res.json({ ok: true, replaced: currentRecorder || null });
 });
 
@@ -134,6 +131,14 @@ app.post(`${API}/honors`, (req, res) => {
   if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
   const result = db.addHonor(content);
   res.status(201).json({ id: result.lastInsertRowid });
+});
+
+app.put(`${API}/honors/:id`, (req, res) => {
+  const { content, password } = req.body;
+  if (!content) return res.status(400).json({ error: 'content required' });
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  db.updateHonor(Number(req.params.id), content);
+  res.json({ ok: true });
 });
 
 app.delete(`${API}/honors/:id`, (req, res) => {

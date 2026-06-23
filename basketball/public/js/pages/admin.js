@@ -59,11 +59,22 @@ async function loadHonorsAdmin() {
         ${sortedHonors.length === 0 ? '<div style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:10px">暂无荣誉记录</div>' : ''}
         ${sortedHonors.map(r => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:.85rem">
-            <span>🏅 ${h(r.content)}</span>
+            <span style="flex:1">🏅 ${h(r.content)}</span>
+            <button class="edit-honor-btn" data-id="${r.id}" data-content="${h(r.content)}" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:.75rem;margin-right:8px">编辑</button>
             <button class="del-honor-btn" data-id="${r.id}" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:.85rem">✕</button>
           </div>
         `).join('')}
       </div>`;
+    el.querySelectorAll('.edit-honor-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const newContent = prompt('修改荣誉内容：', btn.dataset.content);
+        if (!newContent) return;
+        api.updateHonor(btn.dataset.id, newContent, adminPwd).then(() => {
+          toast('已修改');
+          loadHonorsAdmin();
+        }).catch(e => toast(e.message));
+      });
+    });
     el.querySelectorAll('.del-honor-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         if (!confirm('确定删除这条荣誉？')) return;

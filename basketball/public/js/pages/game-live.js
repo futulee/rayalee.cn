@@ -189,6 +189,7 @@ function renderFooter(game) {
         </div>
         <input class="form-input" id="edit-location" value="${h(game.location || '')}" placeholder="比赛地点（选填）" style="margin-top:6px" autocomplete="off">
         <input class="form-input" id="edit-notes" value="${h(game.notes || '')}" placeholder="备注（选填，如：决赛）" style="margin-top:6px" autocomplete="off">
+        <input class="form-input" id="edit-recorder" value="${h(game.recorder_name || '')}" placeholder="记录员（可修改）" style="margin-top:6px" autocomplete="off">
         <button class="btn btn-sm btn-outline" id="btn-save-info" style="margin-top:6px">保存信息</button>
       </div>
       <div class="score-editor">
@@ -213,9 +214,10 @@ function renderFooter(game) {
       const game_date = document.getElementById('edit-date').value;
       const location = document.getElementById('edit-location').value.trim();
       const notes = document.getElementById('edit-notes').value.trim();
+      const recorder_name = document.getElementById('edit-recorder').value.trim();
       if (!opponent || !game_date) { toast('对手和日期不能为空'); return; }
       try {
-        await api.updateGame(gameId, { opponent, game_date, location, notes });
+        await api.updateGame(gameId, { opponent, game_date, location, notes, recorder_name });
         toast('比赛信息已更新');
         refreshData();
       } catch (e) { toast('更新失败'); }
@@ -244,6 +246,7 @@ function renderFooter(game) {
           status: 'finished',
           our_score: parseInt(ourVal) || computeOurScore(game.stats),
           opponent_score: oppVal !== '' ? parseInt(oppVal) : game.opponent_score,
+          recorder_name: claimName,
         });
         isRecorder = false;
         lastStateKey = '';

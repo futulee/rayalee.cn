@@ -289,6 +289,10 @@ function addHonor(content) {
   return db.prepare('INSERT INTO honors (content) VALUES (?)').run(content);
 }
 
+function updateHonor(id, content) {
+  db.prepare('UPDATE honors SET content = ? WHERE id = ?').run(content, id);
+}
+
 function deleteHonor(id) {
   db.prepare('DELETE FROM honors WHERE id = ?').run(id);
 }
@@ -311,5 +315,6 @@ module.exports = {
   getDashboard,
   getHonors,
   addHonor,
+  updateHonor,
   deleteHonor,
 };
