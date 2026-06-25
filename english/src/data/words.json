@@ -167,5 +167,30 @@
   {"id":"w15_05","english":"We can get there on foot or by bus from the metro station.","chinese":"从地铁站我们可以步行或坐公交到那里。","week":15,"theme":"nature","type":"sentence"},
   {"id":"w15_06","english":"How long does it take to get there?","chinese":"到那里需要多长时间？","week":15,"theme":"nature","type":"sentence"},
   {"id":"w15_07","english":"It takes 25 minutes to walk there.","chinese":"步行到那里需要25分钟。","week":15,"theme":"nature","type":"sentence"},
-  {"id":"w15_08","english":"It takes 13 minutes to get there by bus.","chinese":"坐公交到那里需要13分钟。","week":15,"theme":"nature","type":"sentence"}
+  {"id":"w15_08","english":"It takes 13 minutes to get there by bus.","chinese":"坐公交到那里需要13分钟。","week":15,"theme":"nature","type":"sentence"},
+
+  {"id":"w18_v01","english":"fly - flew - flown","chinese":"飞","week":18,"theme":"adventure","type":"grammar"},
+  {"id":"w18_v02","english":"tidy - tidied - tidied","chinese":"整理","week":18,"theme":"home","type":"grammar"},
+  {"id":"w18_v03","english":"throw - threw - thrown","chinese":"扔","week":18,"theme":"home","type":"grammar"},
+  {"id":"w18_v04","english":"be - was/were - been","chinese":"是；在","week":18,"theme":"home","type":"grammar"},
+  {"id":"w18_v05","english":"do - did - done","chinese":"做","week":18,"theme":"health","type":"grammar"},
+  {"id":"w18_v06","english":"break - broke - broken","chinese":"打破","week":18,"theme":"home","type":"grammar"},
+  {"id":"w18_v07","english":"make - made - made","chinese":"制作","week":18,"theme":"home","type":"grammar"},
+  {"id":"w18_v08","english":"have - had - had","chinese":"有；吃","week":18,"theme":"food","type":"grammar"},
+  {"id":"w18_v09","english":"go - went - gone","chinese":"去","week":18,"theme":"adventure","type":"grammar"},
+  {"id":"w18_v10","english":"sweep - swept - swept","chinese":"扫","week":18,"theme":"home","type":"grammar"},
+  {"id":"w18_v11","english":"write - wrote - written","chinese":"写","week":18,"theme":"adventure","type":"grammar"},
+  {"id":"w18_v12","english":"meet - met - met","chinese":"遇见","week":18,"theme":"adventure","type":"grammar"},
+  {"id":"w18_v13","english":"see - saw - seen","chinese":"看见","week":18,"theme":"adventure","type":"grammar"},
+  {"id":"w18_v14","english":"put - put - put","chinese":"放","week":18,"theme":"home","type":"grammar"},
+  {"id":"w18_v15","english":"eat - ate - eaten","chinese":"吃","week":18,"theme":"food","type":"grammar"},
+  {"id":"w18_v16","english":"drink - drank - drunk","chinese":"喝","week":18,"theme":"food","type":"grammar"},
+
+  {"id":"w18_s1","english":"Have you finished your work?","chinese":"你完成你的工作了吗？","week":18,"theme":"home","type":"sentence"},
+  {"id":"w18_s2","english":"I have already painted the fence.","chinese":"我已经给栅栏刷好漆了。","week":18,"theme":"home","type":"sentence"},
+  {"id":"w18_s3","english":"We haven't swept the floor yet.","chinese":"我们还没有扫地。","week":18,"theme":"home","type":"sentence"},
+  {"id":"w18_s4","english":"Have you ever been to Shanghai?","chinese":"你去过上海吗？","week":18,"theme":"adventure","type":"sentence"},
+  {"id":"w18_s5","english":"How many times have you had snake soup?","chinese":"你喝过几次蛇汤？","week":18,"theme":"food","type":"sentence"},
+  {"id":"w18_s6","english":"I have never had snake soup.","chinese":"我从没喝过蛇汤。","week":18,"theme":"food","type":"sentence"},
+  {"id":"w18_s7","english":"I have had snake soup once.","chinese":"我喝过一次蛇汤。","week":18,"theme":"food","type":"sentence"}
 ]
