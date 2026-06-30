@@ -406,6 +406,7 @@ export default function FillBlank({ sentences, onDone, onBack }) {
 
   return (
     <SingleBlankFill
+      key={current.id}
       current={current}
       onNext={handleNext}
       onDone={() => onDone(stars, results)}
