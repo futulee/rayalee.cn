@@ -6,7 +6,7 @@ let claimName = '';
 let lastStateKey = '';
 let viewerSort = 'points'; // 'points' | 'steals' | 'rebounds'
 let pinnedPlayers = new Set();
-const DEFAULT_NUMBER_ORDER = [6, 3, 9, 21, 11, 12, 18, 15, 8, 14, 24, 7, 5, 16];
+const DEFAULT_NUMBER_ORDER = [3, 9, 21, 11, 12, 18, 15, 8, 14, 24, 7, 5, 6, 16];
 
 export async function render(main, params) {
   gameId = params.id;
