@@ -1,7 +1,7 @@
 import { route, start } from './router.js?v=31';
 import { render as homePage } from './pages/home.js?v=31';
 import { render as gamesPage } from './pages/games.js?v=31';
-import { render as gameLivePage, cleanup as gameLiveCleanup } from './pages/game-live.js?v=31';
+import { render as gameLivePage, cleanup as gameLiveCleanup } from './pages/game-live.js?v=33';
 import { render as leaderboardPage } from './pages/leaderboard.js?v=31';
 import { render as playerPage } from './pages/player.js?v=31';
 import { render as adminPage } from './pages/admin.js?v=31';

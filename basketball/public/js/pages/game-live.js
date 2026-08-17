@@ -1,15 +1,17 @@
-import { api } from '../api.js?v=31';
-import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js?v=31';
+import { api } from '../api.js?v=32';
+import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js?v=32';
 
-let gameId, isRecorder = false, pollTimer = null;
+let gameId, isRecorder = false, isAdmin = false, pollTimer = null;
 let claimName = '';
 let lastStateKey = '';
 let viewerSort = 'points'; // 'points' | 'steals' | 'rebounds'
 let pinnedPlayers = new Set();
+const DEFAULT_NUMBER_ORDER = [6, 3, 9, 21, 11, 12, 18, 15, 8, 14, 24, 7, 5, 16];
 
 export async function render(main, params) {
   gameId = params.id;
   isRecorder = false;
+  isAdmin = false;
   claimName = '';
   lastStateKey = '';
   viewerSort = 'points';
@@ -38,7 +40,7 @@ export function cleanup() {
 async function refreshData() {
   try {
     const game = await api.getGame(gameId);
-    const stateKey = `${isRecorder}|${game.recorder_name}|${game.status}`;
+    const stateKey = `${isRecorder}|${isAdmin}|${game.recorder_name}|${game.status}`;
 
     // Always update score header and player stats (no inputs)
     renderScoreHeader(game);
@@ -56,6 +58,8 @@ async function refreshData() {
 function renderScoreHeader(game) {
   const ourScore = computeOurScore(game.stats);
   const oppScore = game.opponent_score;
+  const displayOur = game.our_score != null ? game.our_score : (ourScore > 0 ? ourScore : '--');
+  const displayOpp = oppScore != null ? oppScore : '--';
   let resultTag = '';
   let shareText = '';
 
@@ -83,13 +87,13 @@ function renderScoreHeader(game) {
     ${game.notes ? `<div style="font-size:.8rem;margin-top:4px;color:#fbbf24;font-weight:600">🔴 ${h(game.notes)}</div>` : ''}
     ${resultTag ? `<div style="margin:6px 0">${resultTag}</div>` : ''}
     ${statusBadge}
-    <div class="scores">${game.our_score ?? ourScore} : ${oppScore ?? '--'}</div>
+    <div class="scores">${displayOur} : ${displayOpp}</div>
     <div class="recorder">${game.recorder_name ? '记录员: ' + h(game.recorder_name) : '暂无记录员'}</div>
   `;
-  const shareScore = game.our_score ?? ourScore;
-  const shareTitle = `深圳湾女篮 vs ${game.opponent} ${shareScore}:${oppScore ?? '--'}`;
+  const shareScore = displayOur;
+  const shareTitle = `深圳湾女篮 vs ${game.opponent} ${shareScore}:${displayOpp}`;
   header.dataset.shareTitle = shareTitle;
-  header.dataset.shareText = shareText || `深圳湾女篮 vs ${game.opponent}，比分 ${shareScore}:${oppScore ?? '--'}，来查看详细技术统计`;
+  header.dataset.shareText = shareText || `深圳湾女篮 vs ${game.opponent}，比分 ${shareScore}:${displayOpp}，来查看详细技术统计`;
   setPageTitle(shareTitle);
 
   // Also update footer score input without re-rendering entire footer
@@ -103,12 +107,23 @@ function renderClaimArea(game) {
   const el = document.getElementById('claim-area');
   if (isRecorder) {
     el.innerHTML = `
-      <div class="claim-bar" style="justify-content:center;align-items:center;gap:12px">
-        <span style="font-weight:600;color:var(--primary)">正在记录: ${h(claimName)}</span>
+      <div class="claim-bar" style="align-items:center;gap:12px">
+        ${pinnedPlayers.size > 0 ? '<a href="#" id="btn-reset-sort" style="font-size:.65rem;color:var(--text-muted);text-decoration:none;display:inline-block;width:2em;line-height:1.15;word-break:break-all;flex-shrink:0">默认排序</a>' : ''}
+        <span style="flex:1;text-align:center;font-weight:600;color:var(--primary)">正在记录: ${h(claimName)}</span>
         <button class="btn btn-outline btn-sm" id="btn-release">退出记录</button>
       </div>`;
+    const resetBtn = document.getElementById('btn-reset-sort');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        pinnedPlayers.clear();
+        localStorage.removeItem(`bb_pins_${gameId}`);
+        refreshData();
+      });
+    }
     document.getElementById('btn-release').addEventListener('click', () => {
       isRecorder = false;
+      isAdmin = false;
       claimName = '';
       lastStateKey = '';
       clearRecorder();
@@ -141,7 +156,9 @@ function renderPlayers(game) {
       const aPin = pinnedPlayers.has(a.player_id) ? 0 : 1;
       const bPin = pinnedPlayers.has(b.player_id) ? 0 : 1;
       if (aPin !== bPin) return aPin - bPin;
-      return a.number - b.number;
+      const aIdx = DEFAULT_NUMBER_ORDER.indexOf(a.number);
+      const bIdx = DEFAULT_NUMBER_ORDER.indexOf(b.number);
+      return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
     });
     el.innerHTML = sorted.map(s => recorderPlayerCard(s)).join('');
     el.querySelectorAll('.stat-btn').forEach(btn => {
@@ -180,7 +197,7 @@ function renderFooter(game) {
 
   if (isRecorder) {
     const isFinished = game.status === 'finished';
-    footer.innerHTML = `
+    const infoFormHtml = isAdmin ? `
       <div class="form-group" style="margin-bottom:10px">
         <label class="form-label">比赛信息</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -191,10 +208,12 @@ function renderFooter(game) {
         <input class="form-input" id="edit-notes" value="${h(game.notes || '')}" placeholder="备注（选填，如：决赛）" style="margin-top:6px" autocomplete="off">
         <input class="form-input" id="edit-recorder" value="${h(game.recorder_name || '')}" placeholder="记录员（可修改）" style="margin-top:6px" autocomplete="off">
         <button class="btn btn-sm btn-outline" id="btn-save-info" style="margin-top:6px">保存信息</button>
-      </div>
+      </div>` : '';
+    footer.innerHTML = `
+      ${infoFormHtml}
       <div class="score-editor">
         <span style="font-weight:600">我方:</span>
-        <input type="number" id="edit-our-score" value="${game.our_score ?? ourScore}" min="0" autocomplete="off">
+        <input type="number" id="edit-our-score" value="${game.our_score ?? ourScore}" min="0" ${isFinished ? '' : 'readonly'} autocomplete="off">
         <span class="sep">:</span>
         <span style="font-weight:600">对手:</span>
         <input type="number" id="edit-opp-score" value="${game.opponent_score ?? ''}" min="0" placeholder="--" autocomplete="off">
@@ -209,28 +228,32 @@ function renderFooter(game) {
       </div>
       <div id="game-share-img-modal" class="modal-overlay" style="display:none"></div>`;
 
-    document.getElementById('btn-save-info').addEventListener('click', async () => {
-      const opponent = document.getElementById('edit-opponent').value.trim();
-      const game_date = document.getElementById('edit-date').value;
-      const location = document.getElementById('edit-location').value.trim();
-      const notes = document.getElementById('edit-notes').value.trim();
-      const recorder_name = document.getElementById('edit-recorder').value.trim();
-      if (!opponent || !game_date) { toast('对手和日期不能为空'); return; }
-      try {
-        await api.updateGame(gameId, { opponent, game_date, location, notes, recorder_name });
-        toast('比赛信息已更新');
-        refreshData();
-      } catch (e) { toast('更新失败'); }
-    });
+    const saveInfoBtn = document.getElementById('btn-save-info');
+    if (saveInfoBtn) {
+      saveInfoBtn.addEventListener('click', async () => {
+        const opponent = document.getElementById('edit-opponent').value.trim();
+        const game_date = document.getElementById('edit-date').value;
+        const location = document.getElementById('edit-location').value.trim();
+        const notes = document.getElementById('edit-notes').value.trim();
+        const recorder_name = document.getElementById('edit-recorder').value.trim();
+        if (!opponent || !game_date) { toast('对手和日期不能为空'); return; }
+        try {
+          await api.updateGame(gameId, { opponent, game_date, location, notes, recorder_name });
+          toast('比赛信息已更新');
+          refreshData();
+        } catch (e) { toast('更新失败'); }
+      });
+    }
 
     document.getElementById('btn-save-scores').addEventListener('click', async () => {
-      const our = parseInt(document.getElementById('edit-our-score').value) || 0;
       const opp = document.getElementById('edit-opp-score').value;
+      const payload = { opponent_score: opp !== '' ? parseInt(opp) : null };
+      if (isFinished) {
+        const our = parseInt(document.getElementById('edit-our-score').value);
+        if (!isNaN(our)) payload.our_score = our;
+      }
       try {
-        await api.updateGame(gameId, {
-          our_score: our,
-          opponent_score: opp !== '' ? parseInt(opp) : null,
-        });
+        await api.updateGame(gameId, payload);
         toast('比分已更新');
         refreshData();
       } catch (e) { toast('更新失败'); }
@@ -246,9 +269,10 @@ function renderFooter(game) {
           status: 'finished',
           our_score: parseInt(ourVal) || computeOurScore(game.stats),
           opponent_score: oppVal !== '' ? parseInt(oppVal) : game.opponent_score,
-          recorder_name: claimName,
+          ...(isAdmin ? {} : { recorder_name: claimName }),
         });
         isRecorder = false;
+        isAdmin = false;
         lastStateKey = '';
         clearRecorder();
         toast('比赛已结束');
@@ -438,8 +462,8 @@ async function showEditModal() {
     requireAdmin = game.status === 'finished';
   } catch (e) { /* ignore */ }
 
-  const codeLabel = requireAdmin ? '管理员密码' : '记录码';
-  const codePlaceholder = requireAdmin ? '输入管理员密码' : '4位记录码';
+  const codeLabel = requireAdmin ? '管理员密码' : '记录码 / 管理员密码';
+  const codePlaceholder = requireAdmin ? '输入管理员密码' : '记录码或管理员密码';
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -468,25 +492,33 @@ async function showEditModal() {
     if (!code || !name) { toast('请输入信息'); return; }
 
     try {
+      let willBeAdmin = false;
       if (requireAdmin) {
         const { password: serverPwd } = await api.getAdminPassword();
         if (code !== serverPwd) { toast('管理员密码错误'); return; }
+        willBeAdmin = true;
       } else {
         const { code: serverCode } = await api.getRecorderCode();
-        if (code !== serverCode) { toast('记录码错误'); return; }
+        const { password: serverPwd } = await api.getAdminPassword();
+        if (code === serverPwd) {
+          willBeAdmin = true;
+        } else if (code !== serverCode) {
+          toast('记录码或管理员密码错误'); return;
+        }
       }
 
       const currentGame = await api.getGame(gameId);
       const currentRecorder = currentGame.recorder_name;
-      if (currentRecorder && currentRecorder !== name) {
+      if (!willBeAdmin && currentRecorder && currentRecorder !== name) {
         if (!confirm(`当前由 ${currentRecorder} 记录中，是否接管？`)) return;
       }
-      await api.claimRecorder(gameId, code, name);
+      const resp = await api.claimRecorder(gameId, code, name);
       claimName = name;
       isRecorder = true;
+      isAdmin = resp.isAdmin;
       lastStateKey = '';
       saveRecorder();
-      toast(currentRecorder ? `已接管记录 (原: ${currentRecorder})` : `已开始编辑`);
+      toast(willBeAdmin ? '已进入编辑' : (currentRecorder ? `已接管记录 (原: ${currentRecorder})` : '已开始记录'));
       overlay.remove(); unlockBody();
       refreshData();
     } catch (e) {
@@ -514,9 +546,10 @@ async function handleClaim() {
       if (!confirm(`当前由 ${currentRecorder} 记录中，是否接管？`)) return;
     }
 
-    await api.claimRecorder(gameId, code, name);
+    const resp = await api.claimRecorder(gameId, code, name);
     claimName = name;
     isRecorder = true;
+    isAdmin = resp.isAdmin;
     lastStateKey = '';
     saveRecorder();
     toast(currentRecorder ? `已接管记录 (原: ${currentRecorder})` : `已开始记录 (${name})`);
@@ -543,11 +576,13 @@ function computeOurScore(stats) {
 function saveRecorder() {
   localStorage.setItem('bb_recorder_name', claimName);
   localStorage.setItem('bb_recorder_gameId', gameId);
+  localStorage.setItem('bb_recorder_isAdmin', isAdmin ? '1' : '0');
 }
 
 function clearRecorder() {
   localStorage.removeItem('bb_recorder_name');
   localStorage.removeItem('bb_recorder_gameId');
+  localStorage.removeItem('bb_recorder_isAdmin');
 }
 
 function restoreRecorder() {
@@ -556,6 +591,7 @@ function restoreRecorder() {
   if (savedName && savedGameId === gameId) {
     claimName = savedName;
     isRecorder = true;
+    isAdmin = localStorage.getItem('bb_recorder_isAdmin') === '1';
     lastStateKey = '';
   }
 }
