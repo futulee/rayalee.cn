@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>升学路线 · 家庭会议</title>
+<style>
+  :root{
+    --blue:#1a3c6e;
+    --blue-soft:#eef3fb;
+    --green:#1e8e5a;
+    --green-soft:#e8f6ee;
+    --red:#c0392b;
+    --red-soft:#fdecea;
+    --amber:#b7791f;
+    --amber-soft:#fdf3e0;
+    --ink:#1f2937;
+    --muted:#6b7280;
+    --line:#e5e7eb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+    color:var(--ink);
+    background:#f5f7fb;
+    overflow:hidden;
+  }
+  .deck{position:relative;width:100vw;height:100vh}
+  .slide{
+    position:absolute;inset:0;
+    display:none;
+    padding:5vh 6vw;
+    overflow:auto;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .slide.active{display:flex}
+  .slide.cover{justify-content:center;align-items:center;text-align:center}
+
+  /* 排版 */
+  h1{font-size:clamp(28px,4.2vw,56px);line-height:1.25;color:var(--blue);margin-bottom:.6em;font-weight:800}
+  h2{font-size:clamp(22px,3vw,40px);color:var(--blue);margin-bottom:.8em;font-weight:700;line-height:1.3}
+  h3{font-size:clamp(18px,2.2vw,28px);margin:.6em 0 .4em;color:var(--ink);font-weight:700}
+  .kicker{font-size:clamp(13px,1.4vw,18px);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6em;font-weight:600}
+  p{font-size:clamp(15px,1.7vw,23px);line-height:1.6;margin:.35em 0}
+  li{font-size:clamp(15px,1.7vw,23px);line-height:1.55;margin:.28em 0}
+  .lead{font-size:clamp(17px,2vw,27px);color:var(--muted);line-height:1.6}
+  .small{font-size:clamp(13px,1.4vw,17px);color:var(--muted);line-height:1.5}
+  strong{color:var(--ink)}
+  em{font-style:normal;color:var(--red);font-weight:700}
+
+  /* 布局块 */
+  .cols{display:grid;gap:1.2vw;margin-top:.8em}
+  .cols.two{grid-template-columns:1fr 1fr}
+  .cols.three{grid-template-columns:1fr 1fr 1fr}
+  .cols.four{grid-template-columns:1fr 1fr 1fr 1fr}
+  @media(max-width:760px){.cols.two,.cols.three,.cols.four{grid-template-columns:1fr}}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.3em 1.4em;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .card h3{margin-top:0}
+  .card.good{background:var(--green-soft);border-color:#bfe3cd}
+  .card.bad{background:var(--red-soft);border-color:#f3c6c0}
+  .card.warn{background:var(--amber-soft);border-color:#ecd7ad}
+  .card.blue{background:var(--blue-soft);border-color:#cddbf0}
+
+  .tag{display:inline-block;padding:.15em .6em;border-radius:999px;font-size:clamp(12px,1.2vw,16px);font-weight:700;margin-right:.4em}
+  .tag.good{background:#d5efe0;color:var(--green)}
+  .tag.bad{background:#f6d5d1;color:var(--red)}
+  .tag.warn{background:#f7e4bf;color:var(--amber)}
+  .tag.blue{background:#d7e3f5;color:var(--blue)}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);font-size:clamp(13px,1.5vw,20px)}
+  th,td{padding:.7em .8em;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45}
+  th{background:var(--blue);color:#fff;font-weight:700;font-size:clamp(13px,1.5vw,19px)}
+  tr:last-child td{border-bottom:none}
+  td .sub{color:var(--muted);font-size:.85em;display:block;margin-top:.2em}
+  .center{text-align:center}
+
+  .callout{border-left:5px solid var(--red);background:var(--red-soft);padding:1em 1.3em;border-radius:0 14px 14px 0;margin:.6em 0}
+  .callout.green{border-left-color:var(--green);background:var(--green-soft)}
+  .callout.blue{border-left-color:var(--blue);background:var(--blue-soft)}
+  .callout p{font-size:clamp(15px,1.8vw,24px)}
+
+  .big-num{font-size:clamp(34px,5vw,72px);font-weight:800;color:var(--blue);line-height:1}
+  .divider{height:1px;background:var(--line);margin:1em 0}
+
+  ul{padding-left:1.3em}
+  ul.tight li{margin:.15em 0}
+
+  /* 导航 */
+  .nav{position:fixed;bottom:2.2vh;right:3vw;display:flex;gap:10px;align-items:center;z-index:50}
+  .nav button{width:46px;height:46px;border-radius:50%;border:none;background:#fff;color:var(--blue);font-size:22px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);font-weight:700}
+  .nav button:hover{background:var(--blue);color:#fff}
+  .page-dot{position:fixed;bottom:2.6vh;left:3vw;font-size:clamp(12px,1.3vw,16px);color:var(--muted);z-index:50;font-weight:600;letter-spacing:.05em}
+  .progress{position:fixed;top:0;left:0;height:4px;background:var(--blue);z-index:60;transition:width .25s}
+  @media print{.nav,.progress,.page-dot{display:none}.slide{position:static;display:block;page-break-after:always}}
+</style>
+</head>
+<body>
+<div class="deck">
+  <div class="progress" id="progress"></div>
+
+  <!-- 1 封面 -->
+  <section class="slide cover active">
+    <div class="kicker">家庭会议 · 2026.09</div>
+    <h1>初中去哪，<br>会通向哪几条路？</h1>
+    <p class="lead">今天只搞明白一件事：<br>每条路的终点长什么样，<br>你自己心里有个方向。</p>
+  </section>
+
+  <!-- 2 四条升学路 -->
+  <section class="slide">
+    <div class="kicker">第一部分 · 先建全局</div>
+    <h2>世界上有哪几条升学路？</h2>
+    <div class="cols four">
+      <div class="card blue"><h3>内地高考</h3><p>中国的高考，几千万人一起考，统一出题。</p></div>
+      <div class="card blue"><h3>DSE</h3><p>香港的高考（中学文凭考试），用等级算分。</p></div>
+      <div class="card"><h3>IB</h3><p>国际文凭，全英文，全球通用，论文+实践很多。</p></div>
+      <div class="card"><h3>A-Level</h3><p>英国的高考，全英文，英联邦国家认。</p></div>
+    </div>
+    <div class="callout blue" style="margin-top:1.2em">
+      <p>我们家只认真比 <strong>两条</strong>：<strong>内地高考</strong> 和 <strong>DSE</strong>。</p>
+    </div>
+  </section>
+
+  <!-- 3 为什么不选 IB / A-Level -->
+  <section class="slide">
+    <div class="kicker">第一部分 · 为什么先放一边</div>
+    <h2>IB、A-Level 为什么不选？</h2>
+    <div class="cols two">
+      <div class="card bad"><h3>IB / A-Level 的硬伤</h3>
+        <ul>
+          <li><strong>全英文授课</strong>，英语要求比 DSE 还高</li>
+          <li>没有「内地大学低分通道」——想回内地，只能走更难的联考</li>
+          <li>IB 还要写长论文、做社会实践，压力很大</li>
+        </ul>
+      </div>
+      <div class="card good"><h3>你现在的英语偏弱</h3>
+        <ul>
+          <li>IB / A-Level 正好是英语要求最高的两条</li>
+          <li>硬上会很吃力，先不碰</li>
+          <li>锁住在 <strong>高考</strong> 和 <strong>DSE</strong> 里选</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 高考怎么考 -->
+  <section class="slide">
+    <div class="kicker">第二部分 · 高考 vs DSE</div>
+    <h2>先看：内地高考怎么考？</h2>
+    <div class="card">
+      <ul>
+        <li><strong>科目</strong>：语、数、英 + 自选 3 科（3+1+2，共 6 科）</li>
+        <li><strong>满分</strong>：750 分</li>
+        <li><strong>次数</strong>：一年一次，6 月考</li>
+        <li><strong>录取</strong>：统一划线 → 填志愿 → 按分数投档</li>
+      </ul>
+    </div>
+    <div class="callout"><p>特点：<strong>一考定终身</strong>，全国几千万人拼同一条线。</p></div>
+  </section>
+
+  <!-- 5 DSE 怎么考 -->
+  <section class="slide">
+    <div class="kicker">第二部分 · 高考 vs DSE</div>
+    <h2>再看：DSE 怎么考？</h2>
+    <div class="cols two">
+      <div class="card blue">
+        <h3>4 门核心（必考）</h3>
+        <ul>
+          <li>中文</li>
+          <li>英文（口语 + 笔试）</li>
+          <li>数学</li>
+          <li>公民科（公民与社会发展科）：讲社会、国家、法治，只分「达标 / 不达标」，<strong>不算分</strong></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>+ 2~3 门选修（自己挑）</h3>
+        <ul>
+          <li>理科：物理 / 化学 / 生物</li>
+          <li>文科：历史 / 地理</li>
+          <li>商科：经济 / 会计</li>
+        </ul>
+        <p class="small">一般考 <strong>6 科</strong>（4核心+2选修），学有余力考 7 科。</p>
+      </div>
+    </div>
+    <p class="small" style="margin-top:.6em">一年一次，3~5 月考，6 月放榜。</p>
+  </section>
+
+  <!-- 6 DSE 分数怎么来 -->
+  <section class="slide">
+    <div class="kicker">第二部分 · 分数怎么算</div>
+    <h2>DSE 分数怎么来的？</h2>
+    <p>不是 750 分，是<strong>等级制</strong>，再换成数字：</p>
+    <div class="cols" style="grid-template-columns:repeat(7,1fr);gap:.6vw">
+      <div class="card center"><div class="big-num">5**</div><p class="small">7分</p></div>
+      <div class="card center"><div class="big-num">5*</div><p class="small">6分</p></div>
+      <div class="card center"><div class="big-num">5</div><p class="small">5分</p></div>
+      <div class="card center"><div class="big-num">4</div><p class="small">4分</p></div>
+      <div class="card center"><div class="big-num">3</div><p class="small">3分</p></div>
+      <div class="card center"><div class="big-num">2</div><p class="small">2分</p></div>
+      <div class="card center"><div class="big-num">1</div><p class="small">1分</p></div>
+    </div>
+    <div class="callout green" style="margin-top:1em">
+      <p><strong>Best5 = 挑分数最高的 5 科相加</strong>，满分 35。<br>
+      <span class="small">例：中文4 + 英文5 + 数学5 + 经济4 + 地理4 = <strong>22 分</strong></span></p>
+    </div>
+  </section>
+
+  <!-- 7 录取方式 -->
+  <section class="slide">
+    <div class="kicker">第二部分 · 录取方式</div>
+    <h2>录取方式，差别很大</h2>
+    <div class="cols two">
+      <div class="card">
+        <h3>高考</h3>
+        <p><span class="tag bad">一考定终身</span></p>
+        <ul class="tight">
+          <li>统一划线，填志愿，按分数投档</li>
+          <li>一次考试决定一切</li>
+        </ul>
+      </div>
+      <div class="card good">
+        <h3>DSE</h3>
+        <p><span class="tag good">申请制 + 平时分</span></p>
+        <ul class="tight">
+          <li>成绩达标后，自己去申请学校，学校择优录取</li>
+          <li>有 <strong>SBA 平时分</strong>（校内表现占一部分，不是纯一锤子）</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 优劣表 -->
+  <section class="slide">
+    <div class="kicker">第二部分 · 一张表看清优劣</div>
+    <h2>高考 vs DSE，优劣对比</h2>
+    <table>
+      <tr><th></th><th>内地高考</th><th>DSE</th></tr>
+      <tr><td><strong>入学门槛</strong></td>
+        <td>先过中考：看分数，上好高中 → 上好大学概率更高</td>
+        <td>6 年制，没有中考；但转学去香港有入学考试</td>
+      </tr>
+      <tr><td><strong>优势</strong></td>
+        <td>体系熟悉、全科扎实、国内大学全都能选</td>
+        <td>一份成绩多出路（内地+香港+海外）、数学简单、有港籍红利、有平时分</td>
+      </tr>
+      <tr><td><strong>劣势</strong></td>
+        <td>几百万人拼、一考定终身、香港身份用不上、海外出路窄</td>
+        <td><em>英语是命门</em>、一年一次、课程要重新适应</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- 录取比例对比 -->
+  <section class="slide">
+    <div class="kicker">第二部分 · 录取比例对比</div>
+    <h2>深圳高考 vs DSE，录取比例差多少？</h2>
+    <table>
+      <tr><th>档次</th><th>内地大学</th><th>深圳高考</th><th>DSE 上港校（本地生）</th><th>DSE 上内地</th></tr>
+      <tr><td>上高中</td><td>——</td><td>中考普高率约 <strong>52%</strong>（先刷一半）</td><td>6 年制直升，<strong>无中考</strong></td><td>6 年制直升</td></tr>
+      <tr><td>顶尖</td><td>清北</td><td>约 <strong>690</strong> 分，录取极少</td><td>港三大约 <strong>16%</strong></td><td rowspan="4"><strong>整体约 50%</strong>（达标者约 67%）<br><span class="small">每年约 4500 人报名、录取 2300 人<br>达标 332A 后按分数分档：<br>一本达标即可、211 要 14~18 分、<br>985 要 16~20 分、<br>清北 22 分以上</span></td></tr>
+      <tr><td>一流</td><td>985</td><td>约 <strong>620</strong> 分起，<strong>4.1%</strong></td><td>港八大约 <strong>30%</strong></td></tr>
+      <tr><td>重点</td><td>211</td><td>约 <strong>590</strong> 分起，<strong>13%</strong></td><td>——</td></tr>
+      <tr><td>普通本科</td><td>一本</td><td>约 <strong>540</strong> 分，<strong>26.3%</strong></td><td>全部本科（含自资）约 <strong>45%</strong></td></tr>
+    </table>
+    <p class="small" style="margin-top:.5em">层层包含：香港 <strong>港三大 16% ⊂ 港八大 30% ⊂ 全部本科（含自资）45%</strong>；内地 <strong>清北 ⊂ 985（4.1%）⊂ 211（13%）⊂ 一本（26.3%）</strong>。DSE 上内地没被录取的还能走香港八大、海外。深圳分数为 2026 年广东物理类参考。数据会波动。</p>
+  </section>
+
+  <!-- 9 命门英语 -->
+  <section class="slide">
+    <div class="kicker">第二部分 · 命门</div>
+    <h2>DSE 最大的坎：英语</h2>
+    <div class="callout"><p>DSE 英文难度 ≈ 雅思 6.0，是整条 DSE 路线的生死线。</p></div>
+    <div class="cols two">
+      <div class="card warn"><h3>要多少级才够？</h3>
+        <ul>
+          <li>上内地大学：英文 <strong>3 级</strong></li>
+          <li>上香港 / 海外大学：英文 <strong>4 级</strong>（很多免雅思）</li>
+        </ul>
+      </div>
+      <div class="card bad"><h3>你的现状</h3>
+        <ul>
+          <li>英语现在偏弱，单词不认识的多</li>
+          <li>这是后面所有讨论绕不开的坎</li>
+          <li>要不要走 DSE，核心就看英语能不能补上来</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 走 DSE 的两条岔路 -->
+  <section class="slide">
+    <div class="kicker">第三部分 · 走 DSE 的两条岔路</div>
+    <h2>初中去哪 vs 高中两年去哪</h2>
+    <div class="cols two">
+      <div class="card blue">
+        <h3>岔路①：初中去哪</h3>
+        <ul>
+          <li><strong>深圳湾 / 育才</strong>：公立、就近、国内体系</li>
+          <li><strong>培侨</strong>：深圳、寄宿、有女篮校队、直接进 DSE 体系</li>
+          <li><strong>香港</strong>：初中就全家去香港读</li>
+        </ul>
+        <p class="small">只影响英语/课程早点或晚点起步，<strong>不影响能不能上香港大学</strong>。</p>
+      </div>
+      <div class="card">
+        <h3>岔路②：高中两年去哪</h3>
+        <p class="small" style="margin-bottom:.3em">为什么有这条岔路？香港<strong>新规</strong>：想以「本地生」身份考香港大学（学费便宜、名额多），必须在香港中学读满<strong>高中最后两年（中四、中五）</strong>。</p>
+        <ul>
+          <li><strong>留深圳</strong>（=继续在培侨读完）→ 只能走「自费池」（贵、名额少）</li>
+          <li><strong>转香港</strong> → 走「本地生」（便宜、名额多）</li>
+        </ul>
+        <p class="small">不管初中读培侨还是公立，只要高一高二去香港，<strong>待遇完全一样</strong>。</p>
+      </div>
+    </div>
+    <div class="callout blue" style="margin-top:.8em">
+      <p>补充一句：香港大学的「本地生」名额（学费便宜、录取率高），<strong>只看高一高二在不在香港读</strong>，跟初中读培侨还是公立没关系。</p>
+    </div>
+  </section>
+
+  <!-- 走 DSE 的成本对比 -->
+  <section class="slide">
+    <div class="kicker">第三部分 · 走 DSE 的成本</div>
+    <h2>走 DSE，钱花在哪？</h2>
+    <div class="cols two">
+      <div>
+        <h3>① 就读成本</h3>
+        <table>
+          <tr><th></th><th>培侨（深圳）</th><th>香港中学</th></tr>
+          <tr><td>学费</td><td>约 15 万/年 + 寄宿 1.4 万</td><td>直资中学约 2~6 万港币/年</td></tr>
+          <tr><td>住宿/生活</td><td>住校，在深圳，不搬家</td><td>全家搬迁，香港租房陪读（大头）</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3>② 考香港大学</h3>
+        <table>
+          <tr><th></th><th>本地生</th><th>非本地生（自费）</th></tr>
+          <tr><td>学费/年</td><td>约 4.2 万港币</td><td>18 万+ 港币</td></tr>
+          <tr><td>录取率</td><td>约 30%</td><td>约 5%</td></tr>
+          <tr><td>名额</td><td>多（约 1.5 万学位）</td><td>极少</td></tr>
+        </table>
+      </div>
+    </div>
+    <p class="small" style="margin-top:.5em">「本地生」需要高一高二在香港读满两年（前面岔路②的新规）。金额为大致参考。</p>
+  </section>
+
+  <!-- 12 大学档次 + DSE 分数对照 -->
+  <section class="slide">
+    <div class="kicker">第四部分 · 大学档次 + DSE 分数</div>
+    <h2>考多少分，能上什么大学</h2>
+    <table>
+      <tr><th>档次</th><th>DSE 分数</th><th>内地</th><th>香港</th><th>海外</th></tr>
+      <tr><td><span class="tag warn">清北</span></td><td>22 分以上</td>
+        <td>清华、北大</td>
+        <td>港大、港中文、港科大</td>
+        <td>英国牛剑、澳洲墨大、美国藤校</td>
+      </tr>
+      <tr><td><span class="tag blue">985</span></td><td>16~20 分</td>
+        <td>复旦、浙大、武大、中大、华工等</td>
+        <td>港理工、港城大</td>
+        <td>澳洲悉尼/新南、新加坡 NUS/NTU、加拿大 UBC</td>
+      </tr>
+      <tr><td><span class="tag blue">211</span></td><td>14~18 分</td>
+        <td>暨大、华南师大等</td>
+        <td>浸会、岭南、教大</td>
+        <td>澳洲昆士兰/莫纳什、新西兰奥克兰</td>
+      </tr>
+      <tr><td><span class="tag good">一本</span></td><td>过 332A</td>
+        <td>深大等</td>
+        <td>——</td>
+        <td>澳洲西澳/阿德莱德</td>
+      </tr>
+    </table>
+    <p class="small" style="margin-top:.5em">332A = 中文≥3、英文≥3、数学≥2、公民科达标，是内地大学最低报名线。分数为参考区间，按录取难度大致对应，仅供参考。</p>
+    <div class="callout" style="margin-top:.5em">
+      <p><strong>深圳大学</strong>：不是 985、也不是 211，但地处深圳、就业好，分数线超过很多 211 → 属于「很强的双非一本」。</p>
+    </div>
+  </section>
+
+  <!-- 14 海外范围 + 高考是否只有国内 -->
+  <section class="slide">
+    <div class="kicker">第四部分 · 海外出路</div>
+    <h2>DSE 还能去哪？高考呢？</h2>
+    <div class="cols two">
+      <div class="card good">
+        <h3>DSE 的海外出路很宽</h3>
+        <ul>
+          <li><strong>英国</strong>：几乎所有大学都认，英文 4 级多免雅思</li>
+          <li><strong>澳洲、新西兰</strong>：分数要求相对低，海外里最好进</li>
+          <li><strong>加拿大</strong>：多伦多、UBC 等</li>
+          <li><strong>新加坡</strong>：NUS、NTU</li>
+          <li><strong>美国</strong>：部分认，顶尖美本还要考 SAT</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>高考：基本只有国内</h3>
+        <ul>
+          <li>主要就是国内大学</li>
+          <li>海外认可有限，想出国还得另外考雅思、走别的通道</li>
+        </ul>
+        <p class="small">→ 这就是 DSE 最大的红利：一份成绩，多条后路。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 落到当下 -->
+  <section class="slide">
+    <div class="kicker">第五部分 · 落到当下</div>
+    <h2>现在六年级，初中去哪？</h2>
+    <div class="cols three">
+      <div class="card">
+        <h3>1. 深圳湾 / 育才</h3>
+        <ul>
+          <li>走国内体系，初三再决定「继续国内高中」还是「转 DSE」</li>
+          <li>英语要自己额外补</li>
+        </ul>
+      </div>
+      <div class="card blue">
+        <h3>2. 培侨</h3>
+        <ul>
+          <li>直接进 DSE 体系，寄宿，有女篮</li>
+          <li>现在六年级就要补 DSE 英语，备考明年入学考试</li>
+        </ul>
+      </div>
+      <div class="card blue">
+        <h3>3. 香港</h3>
+        <ul>
+          <li>初中就全家去香港读</li>
+          <li>现在六年级就要补英语，备考明年香港中学入学考试</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:.8em">
+      <p>注意：一旦选了 <strong>培侨或香港</strong>，就等于<strong>锁定 DSE 路线</strong>，以后不会再回国内高考。</p>
+    </div>
+  </section>
+
+  <!-- 入学考试说明 -->
+  <section class="slide">
+    <div class="kicker">第五部分 · 入学考试怎么考</div>
+    <h2>如果走 DSE，入学考试考什么？</h2>
+    <div class="cols two">
+      <div class="card blue">
+        <h3>培侨（深圳）入学考</h3>
+        <ul>
+          <li><strong>笔试</strong>：中、英、数三科；英文考阅读/写作/听力，数学有全英文题和超纲</li>
+          <li><strong>面试</strong>：占 40% 权重，英文为主，问兴趣、规划、为什么选培侨</li>
+          <li><strong>难度</strong>：录取率约 10%，竞争激烈，难点在英语和口语</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>香港中学（插班）入学考</h3>
+        <ul>
+          <li><strong>笔试</strong>：中文（繁体）、英文、数学（英文题）</li>
+          <li><strong>面试</strong>：个人 + 小组，Band1 基本全英文</li>
+          <li><strong>难度</strong>：中一学位极少、最抢手，英文比内地高 1~2 级，繁体字是第一道坎</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:.8em">
+      <p>两边都一样：<strong>英语和面试是决胜关键</strong>。如果现在决定走 DSE，六年级就要开始——补英语（尤其口语）、数学超前学、练繁体字（去香港的话）、练面试。</p>
+    </div>
+  </section>
+
+  <!-- 备选学校 -->
+  <section class="slide">
+    <div class="kicker">第五部分 · 培侨考不进怎么办</div>
+    <h2>培侨之外，还有哪些 DSE 学校？</h2>
+    <table>
+      <tr><th>学校</th><th>位置</th><th>初中学费</th><th>特点</th></tr>
+      <tr><td>培侨信义</td><td>龙华</td><td>约 12.8 万/年</td><td>唯一已生效与考校，寄宿</td></tr>
+      <tr><td>前海哈罗港人</td><td>南山前海</td><td>约 21.9 万/年</td><td>离家最近，DSE/IB 双轨，英语要求高</td></tr>
+      <tr><td>鲸帆港人</td><td>南山</td><td>约 14.5 万/年</td><td>专注 DSE，全寄宿，办学 9 年</td></tr>
+      <tr><td>南山中英文协同</td><td>南山</td><td>约 9~12 万/年</td><td>民办，相对便宜</td></tr>
+    </table>
+    <div class="callout" style="margin-top:.6em">
+      <p>提醒：目前只有 <strong>培侨</strong>是「已生效」的 DSE 与考学校（学校考生、有平时分）。哈罗、鲸帆是「拟新增」，2027 才可能生效；南山中英文等是自修生（赴港考试、无平时分）。</p>
+    </div>
+    <p class="small" style="margin-top:.4em">如果都不合适，也可以继续深圳湾/育才读初中、高中再转 DSE，不用现在锁死。</p>
+  </section>
+
+  <!-- 报班安排 -->
+  <section class="slide">
+    <div class="kicker">第五部分 · 六年级报班怎么安排</div>
+    <h2>六年级这一年，课外怎么补？</h2>
+    <table>
+      <tr><th>科目</th><th>每周时间</th><th>重点学什么</th></tr>
+      <tr><td>英语（核心）</td><td>4~6 小时</td><td>阅读 + 写作 + 口语（面试）</td></tr>
+      <tr><td>数学</td><td>2~4 小时</td><td>超前学 + 英文数学术语</td></tr>
+      <tr><td>面试 / 口语</td><td>每周 1 次</td><td>自我介绍、为什么选这学校</td></tr>
+      <tr><td>繁体字（去香港）</td><td>每天 15~20 分钟</td><td>练准笔画</td></tr>
+    </table>
+    <p class="small" style="margin-top:.5em">合计一周约 8~12 小时。深圳湾周边可选机构：智优港（有深圳湾服务点）、鹰尚私塾（南山）、ALV 爱乐惟、新东方。学费量级：英语单科约 7 万/3 个月、数学约 4 万/3 个月，综合全年班约 5~20 万。建议试听 2~3 家再定。</p>
+  </section>
+
+  <!-- 16 结尾 -->
+  <section class="slide">
+    <div class="kicker">结尾</div>
+    <h2>留给你自己想的问题</h2>
+    <ul style="font-size:clamp(16px,1.9vw,25px)">
+      <li>听完这些，你心里现在<strong>更偏向哪条路</strong>？为什么？</li>
+      <li><strong>寄宿</strong>：培侨中学要住校、周末才回家，你能接受吗？</li>
+      <li><strong>英语备考</strong>：如果走 DSE，从现在六年级就要课外补 DSE 英语、备考明年入学考试——这个节奏能接受吗？</li>
+    </ul>
+    <p class="small" style="margin-top:.6em">不用今天就定死。今天的目标：听懂每条路的区别和结果，心里有个大致方向。</p>
+    <p class="small" style="margin-top:1.6em;color:var(--muted)">制作人：LEE 李昊　·　2026 年 9 月 15 日</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="上一页">‹</button>
+  <button id="next" aria-label="下一页">›</button>
+</div>
+<div class="page-dot" id="pager"></div>
+
+<script>
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0;
+  var nextBtn = document.getElementById('next');
+  var prevBtn = document.getElementById('prev');
+  var pager = document.getElementById('pager');
+  var progress = document.getElementById('progress');
+
+  function show(n){
+    i = Math.max(0, Math.min(slides.length-1, n));
+    slides.forEach(function(s, idx){ s.classList.toggle('active', idx===i); });
+    pager.textContent = (i+1) + ' / ' + slides.length;
+    progress.style.width = ((i+1)/slides.length*100) + '%';
+  }
+  nextBtn.addEventListener('click', function(){ show(i+1); });
+  prevBtn.addEventListener('click', function(){ show(i-1); });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='ArrowRight' || e.key==='PageDown' || e.key===' ') show(i+1);
+    else if(e.key==='ArrowLeft' || e.key==='PageUp') show(i-1);
+  });
+  show(0);
+</script>
+</body>
+</html>
