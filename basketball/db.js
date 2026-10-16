@@ -182,9 +182,7 @@ function getGame(gameId) {
     WHERE gs.game_id = ?
     ORDER BY p.number
   `).all(gameId);
-  // Departed players stay in finished-game history, but are hidden from live games
-  const visibleStats = game.status === 'finished' ? stats : stats.filter(s => s.active === 1);
-  return { ...game, stats: visibleStats };
+  return { ...game, stats };
 }
 
 function createGame({ opponent, game_date, location, notes }) {
@@ -227,6 +225,25 @@ function updateGame(gameId, { our_score, opponent_score, status, recorder_name, 
 
 function deleteGame(gameId) {
   db.prepare('DELETE FROM games WHERE id = ?').run(gameId);
+}
+
+function addPlayerToGame(gameId, playerId) {
+  db.prepare('INSERT OR IGNORE INTO game_stats (game_id, player_id) VALUES (?, ?)').run(gameId, playerId);
+  return db.prepare('SELECT * FROM game_stats WHERE game_id = ? AND player_id = ?').get(gameId, playerId);
+}
+
+function removePlayerFromGame(gameId, playerId) {
+  const stat = db.prepare(`
+    SELECT * FROM game_stats WHERE game_id = ? AND player_id = ?
+  `).get(gameId, playerId);
+  if (!stat) return { ok: true, notFound: true };
+  const hasData = (stat.pts_2pt || 0) + (stat.pts_3pt || 0) + (stat.pts_1pt || 0)
+    + (stat.steals || 0) + (stat.assists || 0) + (stat.rebounds || 0) > 0;
+  if (hasData) {
+    return { ok: false, reason: '该球员本场有数据，无法移除（请先将其数据全部清零）' };
+  }
+  db.prepare('DELETE FROM game_stats WHERE game_id = ? AND player_id = ?').run(gameId, playerId);
+  return { ok: true };
 }
 
 // --- Recorder claim ---
@@ -381,6 +398,8 @@ module.exports = {
   createGame,
   updateGame,
   deleteGame,
+  addPlayerToGame,
+  removePlayerFromGame,
   getRecorderCode,
   setRecorderCode,
   getAdminUsername,

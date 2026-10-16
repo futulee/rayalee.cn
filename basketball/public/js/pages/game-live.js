@@ -1,4 +1,4 @@
-import { api } from '../api.js?v=36';
+import { api } from '../api.js?v=37';
 import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js?v=32';
 
 let gameId, isRecorder = false, isAdmin = false, pollTimer = null;
@@ -218,7 +218,8 @@ function renderFooter(game) {
         <input class="form-input" id="edit-notes" value="${h(game.notes || '')}" placeholder="备注（选填，如：决赛）" style="margin-top:6px" autocomplete="off">
         <input class="form-input" id="edit-recorder" value="${h(game.recorder_name || '')}" placeholder="记录员（可修改）" style="margin-top:6px" autocomplete="off">
         <button class="btn btn-sm btn-outline" id="btn-save-info" style="margin-top:6px">保存信息</button>
-      </div>` : '';
+      </div>
+      <div id="roster-manager" style="margin-bottom:10px"></div>` : '';
     footer.innerHTML = `
       ${infoFormHtml}
       <div class="score-editor">
@@ -255,6 +256,7 @@ function renderFooter(game) {
           refreshData();
         } catch (e) { toast('更新失败'); }
       });
+      if (isAdmin) renderRosterManager(game);
     }
 
     document.getElementById('btn-save-scores').addEventListener('click', async () => {
@@ -322,6 +324,82 @@ function renderFooter(game) {
       <div id="game-share-img-modal" class="modal-overlay" style="display:none"></div>`;
     document.getElementById('btn-game-share-img').addEventListener('click', () => showGameShareModal());
   }
+}
+
+async function renderRosterManager(game) {
+  const el = document.getElementById('roster-manager');
+  if (!el) return;
+  el.innerHTML = '<div style="font-size:.75rem;color:var(--text-muted);padding:4px 0">加载名单...</div>';
+  let players;
+  try {
+    players = await api.getPlayers();
+  } catch (e) {
+    el.innerHTML = '<div style="font-size:.75rem;color:var(--text-muted);padding:4px 0">名单加载失败</div>';
+    return;
+  }
+  const inGame = new Map(game.stats.map(s => [s.player_id, s]));
+  const sorted = [...players].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999) || a.number - b.number);
+  const activeAbsent = sorted.filter(p => p.active === 1 && !inGame.has(p.id));
+  const departedAbsent = sorted.filter(p => p.active === 0 && !inGame.has(p.id));
+  const adminPwd = sessionStorage.getItem('bb_admin_pwd') || '';
+
+  el.innerHTML = `
+    <div class="card" style="padding:10px 12px">
+      <div style="font-weight:700;font-size:.85rem;margin-bottom:6px">👥 参赛名单 <span style="font-weight:400;color:var(--text-muted);font-size:.75rem">（${inGame.size} 人）</span></div>
+      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:4px">已参赛</div>
+      <div id="roster-present">
+        ${game.stats.length === 0 ? '<div style="font-size:.75rem;color:var(--text-muted);padding:4px 0">无</div>' : game.stats.map(s => `
+          <div class="admin-row" data-pid="${s.player_id}">
+            <span style="flex:1;min-width:0"><span style="font-weight:700">#${s.number}</span> ${h(s.name)}${s.active === 0 ? ' <span class="departed-tag">离队</span>' : ''}</span>
+            <button class="btn btn-sm btn-outline roster-remove" data-pid="${s.player_id}" data-num="${s.number}" data-name="${h(s.name)}">移除</button>
+          </div>
+        `).join('')}
+      </div>
+      ${activeAbsent.length > 0 ? `
+        <div style="font-size:.75rem;color:var(--text-muted);margin:8px 0 4px">未参赛 · 在队</div>
+        <div id="roster-absent-active">
+          ${activeAbsent.map(p => `
+            <div class="admin-row" data-pid="${p.id}">
+              <span style="flex:1;min-width:0"><span style="font-weight:700">#${p.number}</span> ${h(p.name)}</span>
+              <button class="btn btn-sm btn-primary roster-add" data-pid="${p.id}">添加</button>
+            </div>
+          `).join('')}
+        </div>` : ''}
+      ${departedAbsent.length > 0 ? `
+        <div style="font-size:.75rem;color:var(--text-muted);margin:8px 0 4px">未参赛 · 离队</div>
+        <div id="roster-absent-departed">
+          ${departedAbsent.map(p => `
+            <div class="admin-row" data-pid="${p.id}">
+              <span style="flex:1;min-width:0"><span style="font-weight:700">#${p.number}</span> ${h(p.name)} <span class="departed-tag">离队</span></span>
+              <button class="btn btn-sm btn-primary roster-add" data-pid="${p.id}">添加</button>
+            </div>
+          `).join('')}
+        </div>` : ''}
+    </div>`;
+
+  el.querySelectorAll('.roster-remove').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const pid = parseInt(btn.dataset.pid);
+      const label = `#${btn.dataset.num} ${btn.dataset.name}`;
+      try {
+        await api.removePlayerFromGame(gameId, pid, adminPwd);
+        toast(`${label} 已移除`);
+        lastStateKey = '';
+        refreshData();
+      } catch (e) { toast(e.message || '移除失败'); }
+    });
+  });
+  el.querySelectorAll('.roster-add').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const pid = parseInt(btn.dataset.pid);
+      try {
+        await api.addPlayerToGame(gameId, pid, adminPwd);
+        toast('已添加');
+        lastStateKey = '';
+        refreshData();
+      } catch (e) { toast(e.message || '添加失败'); }
+    });
+  });
 }
 
 function recorderPlayerCard(s) {

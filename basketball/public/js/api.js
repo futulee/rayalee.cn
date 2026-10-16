@@ -25,6 +25,8 @@ export const api = {
   getGame: (id) => request(`/games/${id}`),
   updateGame: (id, data) => request(`/games/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteGame: (id, password) => request(`/games/${id}`, { method: 'DELETE', body: JSON.stringify({ password }) }),
+  addPlayerToGame: (gameId, playerId, password) => request(`/games/${gameId}/players/${playerId}`, { method: 'POST', body: JSON.stringify({ password }) }),
+  removePlayerFromGame: (gameId, playerId, password) => request(`/games/${gameId}/players/${playerId}`, { method: 'DELETE', body: JSON.stringify({ password }) }),
 
   // Recorder
   getRecorderCode: () => request('/config/recorder-code'),

@@ -107,6 +107,21 @@ app.post(`${API}/games`, (req, res) => {
   res.status(201).json({ id });
 });
 
+app.post(`${API}/games/:id/players/:playerId`, (req, res) => {
+  const { password } = req.body;
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  const stat = db.addPlayerToGame(Number(req.params.id), Number(req.params.playerId));
+  res.status(201).json({ ok: true, stat });
+});
+
+app.delete(`${API}/games/:id/players/:playerId`, (req, res) => {
+  const { password } = req.body;
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  const result = db.removePlayerFromGame(Number(req.params.id), Number(req.params.playerId));
+  if (!result.ok) return res.status(409).json({ error: result.reason });
+  res.json({ ok: true });
+});
+
 app.get(`${API}/games/:id`, (req, res) => {
   const game = db.getGame(Number(req.params.id));
   if (!game) return res.status(404).json({ error: 'Game not found' });
