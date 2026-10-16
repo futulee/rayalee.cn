@@ -67,16 +67,74 @@ function init() {
   if (!rc) {
     db.prepare("INSERT INTO config (key, value) VALUES ('recorder_code', '8888')").run();
   }
+  const au = db.prepare("SELECT value FROM config WHERE key = 'admin_username'").get();
+  if (!au) {
+    db.prepare("INSERT INTO config (key, value) VALUES ('admin_username', 'lee')").run();
+  }
   const ap = db.prepare("SELECT value FROM config WHERE key = 'admin_password'").get();
   if (!ap) {
-    db.prepare("INSERT INTO config (key, value) VALUES ('admin_password', '0514')").run();
+    db.prepare("INSERT INTO config (key, value) VALUES ('admin_password', '318521')").run();
+  }
+
+  // Player default sort order
+  try { db.exec("ALTER TABLE players ADD COLUMN sort_order INTEGER"); } catch (e) {}
+  const anyOrdered = db.prepare("SELECT COUNT(*) as c FROM players WHERE sort_order IS NOT NULL").get();
+  if (anyOrdered.c === 0) {
+    const numberOrder = [3, 9, 21, 11, 12, 18, 15, 8, 24, 7, 5, 6, 16, 14];
+    const posByNumber = new Map(numberOrder.map((n, i) => [n, i]));
+    const players = db.prepare("SELECT id, number FROM players").all();
+    const update = db.prepare("UPDATE players SET sort_order = ? WHERE id = ?");
+    let extra = numberOrder.length;
+    for (const p of players) {
+      const pos = posByNumber.has(p.number) ? posByNumber.get(p.number) : extra++;
+      update.run(pos, p.id);
+    }
   }
 }
 
 // --- Player queries ---
 
 function getAllPlayers() {
+  return db.prepare('SELECT * FROM players ORDER BY number').all();
+}
+
+function getActivePlayers() {
   return db.prepare('SELECT * FROM players WHERE active = 1 ORDER BY number').all();
+}
+
+function createPlayer({ number, name }) {
+  const max = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM players').get().m;
+  const result = db.prepare('INSERT INTO players (number, name, active, sort_order) VALUES (?, ?, 1, ?)').run(number, name, max + 1);
+  return result.lastInsertRowid;
+}
+
+function updatePlayer(playerId, { number, name, active }) {
+  const player = db.prepare('SELECT * FROM players WHERE id = ?').get(playerId);
+  if (!player) return null;
+
+  const updates = [];
+  const values = [];
+  if (number !== undefined) { updates.push('number = ?'); values.push(number); }
+  if (name !== undefined) { updates.push('name = ?'); values.push(name); }
+  if (active !== undefined) { updates.push('active = ?'); values.push(active); }
+  if (updates.length === 0) return player;
+
+  values.push(playerId);
+  db.prepare(`UPDATE players SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+  return db.prepare('SELECT * FROM players WHERE id = ?').get(playerId);
+}
+
+function deletePlayer(playerId) {
+  db.prepare('DELETE FROM game_stats WHERE player_id = ?').run(playerId);
+  db.prepare('DELETE FROM players WHERE id = ?').run(playerId);
+}
+
+function setPlayerOrder(ids) {
+  const update = db.prepare('UPDATE players SET sort_order = ? WHERE id = ?');
+  const tx = db.transaction((idList) => {
+    idList.forEach((id, i) => update.run(i, id));
+  });
+  tx(ids);
 }
 
 function getPlayerStats(playerId) {
@@ -118,13 +176,15 @@ function getGame(gameId) {
   const game = db.prepare('SELECT * FROM games WHERE id = ?').get(gameId);
   if (!game) return null;
   const stats = db.prepare(`
-    SELECT gs.*, p.number, p.name
+    SELECT gs.*, p.number, p.name, p.active, p.sort_order
     FROM game_stats gs
     JOIN players p ON p.id = gs.player_id
     WHERE gs.game_id = ?
     ORDER BY p.number
   `).all(gameId);
-  return { ...game, stats };
+  // Departed players stay in finished-game history, but are hidden from live games
+  const visibleStats = game.status === 'finished' ? stats : stats.filter(s => s.active === 1);
+  return { ...game, stats: visibleStats };
 }
 
 function createGame({ opponent, game_date, location, notes }) {
@@ -134,7 +194,7 @@ function createGame({ opponent, game_date, location, notes }) {
   const gameId = result.lastInsertRowid;
 
   // Auto-create empty stats for all active players
-  const players = getAllPlayers();
+  const players = getActivePlayers();
   const insertStats = db.prepare(`
     INSERT INTO game_stats (game_id, player_id) VALUES (?, ?)
   `);
@@ -180,9 +240,18 @@ function setRecorderCode(code) {
   db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('recorder_code', ?)").run(code);
 }
 
+function getAdminUsername() {
+  const row = db.prepare("SELECT value FROM config WHERE key = 'admin_username'").get();
+  return row ? row.value : 'lee';
+}
+
+function setAdminUsername(u) {
+  db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('admin_username', ?)").run(u);
+}
+
 function getAdminPassword() {
   const row = db.prepare("SELECT value FROM config WHERE key = 'admin_password'").get();
-  return row ? row.value : '0514';
+  return row ? row.value : '318521';
 }
 
 function setAdminPassword(pwd) {
@@ -218,7 +287,7 @@ function getLeaderboard(type) {
   const expr = validTypes[type] || validTypes.points;
 
   return db.prepare(`
-    SELECT p.id, p.number, p.name,
+    SELECT p.id, p.number, p.name, p.active,
            COALESCE(SUM(${expr}), 0) as total,
            COALESCE(SUM(gs.pts_2pt), 0) as pts_2pt,
            COALESCE(SUM(gs.pts_3pt), 0) as pts_3pt,
@@ -230,7 +299,7 @@ function getLeaderboard(type) {
     FROM players p
     LEFT JOIN game_stats gs ON p.id = gs.player_id
     LEFT JOIN games g ON g.id = gs.game_id
-    WHERE p.active = 1 AND (g.status = 'finished' OR g.id IS NULL)
+    WHERE (g.status = 'finished' OR g.id IS NULL)
     GROUP BY p.id
     ORDER BY total DESC
   `).all();
@@ -248,31 +317,28 @@ function getDashboard() {
 
   // Top 3 points
   const topPoints = db.prepare(`
-    SELECT p.id, p.number, p.name, COALESCE(SUM(gs.pts_2pt*2 + gs.pts_3pt*3 + gs.pts_1pt), 0) as total
+    SELECT p.id, p.number, p.name, p.active, COALESCE(SUM(gs.pts_2pt*2 + gs.pts_3pt*3 + gs.pts_1pt), 0) as total
     FROM players p
     JOIN game_stats gs ON p.id = gs.player_id
     JOIN games g ON g.id = gs.game_id AND g.status = 'finished'
-    WHERE p.active = 1
     GROUP BY p.id ORDER BY total DESC LIMIT 5
   `).all();
 
   // Top 3 steals
   const topSteals = db.prepare(`
-    SELECT p.id, p.number, p.name, COALESCE(SUM(gs.steals), 0) as total
+    SELECT p.id, p.number, p.name, p.active, COALESCE(SUM(gs.steals), 0) as total
     FROM players p
     JOIN game_stats gs ON p.id = gs.player_id
     JOIN games g ON g.id = gs.game_id AND g.status = 'finished'
-    WHERE p.active = 1
     GROUP BY p.id ORDER BY total DESC LIMIT 5
   `).all();
 
   // Top 3 rebounds
   const topRebounds = db.prepare(`
-    SELECT p.id, p.number, p.name, COALESCE(SUM(gs.rebounds), 0) as total
+    SELECT p.id, p.number, p.name, p.active, COALESCE(SUM(gs.rebounds), 0) as total
     FROM players p
     JOIN game_stats gs ON p.id = gs.player_id
     JOIN games g ON g.id = gs.game_id AND g.status = 'finished'
-    WHERE p.active = 1
     GROUP BY p.id ORDER BY total DESC LIMIT 5
   `).all();
 
@@ -297,9 +363,18 @@ function deleteHonor(id) {
   db.prepare('DELETE FROM honors WHERE id = ?').run(id);
 }
 
+function backup(destPath) {
+  return db.backup(destPath);
+}
+
 module.exports = {
   init,
   getAllPlayers,
+  getActivePlayers,
+  createPlayer,
+  updatePlayer,
+  deletePlayer,
+  setPlayerOrder,
   getPlayerStats,
   getAllGames,
   getGame,
@@ -308,6 +383,8 @@ module.exports = {
   deleteGame,
   getRecorderCode,
   setRecorderCode,
+  getAdminUsername,
+  setAdminUsername,
   getAdminPassword,
   setAdminPassword,
   updateStat,
@@ -317,4 +394,5 @@ module.exports = {
   addHonor,
   updateHonor,
   deleteHonor,
+  backup,
 };

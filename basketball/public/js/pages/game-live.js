@@ -1,4 +1,4 @@
-import { api } from '../api.js?v=32';
+import { api } from '../api.js?v=36';
 import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js?v=32';
 
 let gameId, isRecorder = false, isAdmin = false, pollTimer = null;
@@ -6,7 +6,6 @@ let claimName = '';
 let lastStateKey = '';
 let viewerSort = 'points'; // 'points' | 'steals' | 'rebounds'
 let pinnedPlayers = new Set();
-const DEFAULT_NUMBER_ORDER = [3, 9, 21, 11, 12, 18, 15, 8, 24, 7, 5, 6, 16, 14];
 
 export async function render(main, params) {
   gameId = params.id;
@@ -28,6 +27,15 @@ export async function render(main, params) {
 
   // Restore recorder state from localStorage
   restoreRecorder();
+
+  // Admin edit mode: entered from admin backend
+  if (sessionStorage.getItem('bb_admin_auth') === '1' && sessionStorage.getItem('bb_admin_edit') === gameId) {
+    sessionStorage.removeItem('bb_admin_edit');
+    isRecorder = true;
+    isAdmin = true;
+    claimName = sessionStorage.getItem('bb_admin_user') || '管理员';
+    lastStateKey = '';
+  }
 
   await refreshData();
   pollTimer = setInterval(refreshData, 5000);
@@ -84,7 +92,7 @@ function renderScoreHeader(game) {
   header.innerHTML = `
     ${metaLine ? `<div style="font-size:.75rem;opacity:.7;margin-bottom:4px">${h(metaLine)}</div>` : ''}
     <div class="vs">深圳湾女篮 vs ${h(game.opponent)}</div>
-    ${game.notes ? `<div style="font-size:.8rem;margin-top:4px;color:#fbbf24;font-weight:600">🔴 ${h(game.notes)}</div>` : ''}
+    ${game.notes ? `<div style="font-size:.8rem;margin-top:4px;color:#fbbf24;font-weight:600">🏷️ ${h(game.notes)}</div>` : ''}
     ${resultTag ? `<div style="margin:6px 0">${resultTag}</div>` : ''}
     ${statusBadge}
     <div class="scores">${displayOur} : ${displayOpp}</div>
@@ -156,9 +164,9 @@ function renderPlayers(game) {
       const aPin = pinnedPlayers.has(a.player_id) ? 0 : 1;
       const bPin = pinnedPlayers.has(b.player_id) ? 0 : 1;
       if (aPin !== bPin) return aPin - bPin;
-      const aIdx = DEFAULT_NUMBER_ORDER.indexOf(a.number);
-      const bIdx = DEFAULT_NUMBER_ORDER.indexOf(b.number);
-      return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+      const ao = a.sort_order ?? 9999;
+      const bo = b.sort_order ?? 9999;
+      return ao - bo || a.number - b.number;
     });
     el.innerHTML = sorted.map(s => recorderPlayerCard(s)).join('');
     el.querySelectorAll('.stat-btn').forEach(btn => {
@@ -223,7 +231,7 @@ function renderFooter(game) {
         ${isFinished
           ? '<span style="font-size:.8rem;color:var(--text-muted)">本场已结束，可修改数据</span>'
           : '<button class="btn btn-outline btn-sm" id="btn-finish-game">结束比赛</button>'}
-        <button class="btn btn-danger btn-sm" id="btn-delete-game" style="margin-left:8px">删除比赛</button>
+        ${isAdmin ? '<button class="btn btn-danger btn-sm" id="btn-delete-game" style="margin-left:8px">删除比赛</button>' : ''}
         <button class="btn btn-outline btn-sm" id="btn-game-share-img" style="margin-left:8px">📸 分享图片</button>
       </div>
       <div id="game-share-img-modal" class="modal-overlay" style="display:none"></div>`;
@@ -280,36 +288,35 @@ function renderFooter(game) {
       } catch (e) { toast('操作失败'); }
     });
 
-    document.getElementById('btn-delete-game').addEventListener('click', () => confirmDeleteGame());
+    const deleteBtn = document.getElementById('btn-delete-game');
+    if (deleteBtn) deleteBtn.addEventListener('click', () => {
+      const scoreLabel = game.our_score != null ? `（${game.our_score}:${game.opponent_score}）` : '';
+      if (!confirm(`确定删除「${game.game_date} vs ${game.opponent}」${scoreLabel}？\n此操作不可恢复，所有数据将丢失。`)) return;
+      const adminPwd = sessionStorage.getItem('bb_admin_pwd') || '';
+      api.deleteGame(gameId, adminPwd).then(() => {
+        toast('已删除');
+        clearInterval(pollTimer);
+        clearRecorder();
+        window.location.hash = '#/';
+      }).catch(e => toast('删除失败: ' + e.message));
+    });
 
     document.getElementById('btn-game-share-img').addEventListener('click', () => showGameShareModal());
 
   } else if (game.status === 'finished') {
     footer.innerHTML = `
       <div style="text-align:center;padding:16px">
-        <button class="btn btn-outline btn-sm" id="btn-edit-game">编辑比赛</button>
-        <button class="btn btn-danger-outline btn-sm" id="btn-delete-game" style="margin-left:8px">删除比赛</button>
-        <button class="btn btn-outline btn-sm" id="btn-game-share-img" style="margin-left:8px">📸 分享图片</button>
+        <button class="btn btn-outline btn-sm" id="btn-game-share-img">📸 分享图片</button>
       </div>
       <div id="game-share-img-modal" class="modal-overlay" style="display:none"></div>`;
-    document.getElementById('btn-edit-game').addEventListener('click', () => {
-      showEditModal();
-    });
-    document.getElementById('btn-delete-game').addEventListener('click', () => confirmDeleteGame());
     document.getElementById('btn-game-share-img').addEventListener('click', () => showGameShareModal());
   } else {
     footer.innerHTML = `
       <div style="text-align:center;padding:16px">
-        <button class="btn btn-outline btn-sm" id="btn-edit-game">编辑比赛</button>
-        <button class="btn btn-outline btn-sm" id="btn-game-share-img" style="margin-left:8px">📸 分享图片</button>
-        <button class="btn btn-danger-outline btn-sm" id="btn-delete-game" style="margin-left:8px">删除比赛</button>
+        <button class="btn btn-outline btn-sm" id="btn-game-share-img">📸 分享图片</button>
       </div>
       <div id="game-share-img-modal" class="modal-overlay" style="display:none"></div>`;
-    document.getElementById('btn-edit-game').addEventListener('click', () => {
-      showEditModal();
-    });
     document.getElementById('btn-game-share-img').addEventListener('click', () => showGameShareModal());
-    document.getElementById('btn-delete-game').addEventListener('click', () => confirmDeleteGame());
   }
 }
 
@@ -396,44 +403,6 @@ async function handleStatClick(e) {
   }
 }
 
-function confirmDeleteGame() {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'delete-confirm-modal';
-  overlay.innerHTML = `
-    <div class="modal-content">
-      <div class="modal-title">确认删除比赛</div>
-      <p style="text-align:center;color:var(--danger);margin-bottom:12px;font-size:.9rem">此操作不可恢复，所有数据将丢失</p>
-      <div class="form-group">
-        <label class="form-label">请输入管理员密码</label>
-        <input class="form-input" type="password" id="delete-code-input" placeholder="管理员密码" maxlength="12" autocomplete="off">
-      </div>
-      <button class="btn btn-danger btn-block" id="btn-delete-confirm">确认删除</button>
-      <button class="btn btn-sm btn-block" style="margin-top:8px;color:var(--text-muted)" id="btn-delete-cancel">取消</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  lockBody();
-  setTimeout(() => document.getElementById('delete-code-input')?.focus(), 300);
-
-  document.getElementById('btn-delete-confirm').addEventListener('click', async () => {
-    const code = document.getElementById('delete-code-input').value.trim();
-    if (!code) { toast('请输入管理员密码'); return; }
-    try {
-      const { password: serverPwd } = await api.getAdminPassword();
-      if (code !== serverPwd) { toast('管理员密码错误'); return; }
-      await api.deleteGame(gameId);
-      overlay.remove(); unlockBody();
-      toast('已删除');
-      clearInterval(pollTimer);
-      window.location.hash = '#/';
-    } catch (e) { toast('删除失败'); }
-  });
-
-  document.getElementById('btn-delete-cancel').addEventListener('click', () => { overlay.remove(); unlockBody(); });
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove(); unlockBody(); } });
-}
-
 async function showGameShareModal() {
   try {
     const game = await api.getGame(gameId);
@@ -452,85 +421,6 @@ async function showGameShareModal() {
     document.getElementById('btn-close-game-img').addEventListener('click', () => { modal.style.display = 'none'; unlockBody(); });
     modal.addEventListener('click', (e) => { if (e.target === modal) { modal.style.display = 'none'; unlockBody(); } });
   } catch (e) { toast('生成图片失败'); }
-}
-
-async function showEditModal() {
-  // Check if finished game requires admin password
-  let requireAdmin = false;
-  try {
-    const game = await api.getGame(gameId);
-    requireAdmin = game.status === 'finished';
-  } catch (e) { /* ignore */ }
-
-  const codeLabel = requireAdmin ? '管理员密码' : '记录码 / 管理员密码';
-  const codePlaceholder = requireAdmin ? '输入管理员密码' : '记录码或管理员密码';
-
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'edit-modal';
-  overlay.innerHTML = `
-    <div class="modal-content">
-      <div class="modal-title">编辑比赛数据</div>
-      <div class="form-group">
-        <label class="form-label">你的名字</label>
-        <input class="form-input" id="edit-name-input" placeholder="输入你的名字" maxlength="20" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label">${codeLabel}</label>
-        <input class="form-input" type="password" id="edit-code-input" placeholder="${codePlaceholder}" maxlength="12" autocomplete="off">
-      </div>
-      <button class="btn btn-primary btn-block" id="btn-edit-confirm">确认编辑</button>
-      <button class="btn btn-sm btn-block" style="margin-top:8px;color:var(--text-muted)" id="btn-edit-cancel">取消</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  lockBody();
-
-  document.getElementById('btn-edit-confirm').addEventListener('click', async () => {
-    const name = document.getElementById('edit-name-input').value.trim();
-    const code = document.getElementById('edit-code-input').value.trim();
-    if (!code || !name) { toast('请输入信息'); return; }
-
-    try {
-      let willBeAdmin = false;
-      if (requireAdmin) {
-        const { password: serverPwd } = await api.getAdminPassword();
-        if (code !== serverPwd) { toast('管理员密码错误'); return; }
-        willBeAdmin = true;
-      } else {
-        const { code: serverCode } = await api.getRecorderCode();
-        const { password: serverPwd } = await api.getAdminPassword();
-        if (code === serverPwd) {
-          willBeAdmin = true;
-        } else if (code !== serverCode) {
-          toast('记录码或管理员密码错误'); return;
-        }
-      }
-
-      const currentGame = await api.getGame(gameId);
-      const currentRecorder = currentGame.recorder_name;
-      if (!willBeAdmin && currentRecorder && currentRecorder !== name) {
-        if (!confirm(`当前由 ${currentRecorder} 记录中，是否接管？`)) return;
-      }
-      const resp = await api.claimRecorder(gameId, code, name);
-      claimName = name;
-      isRecorder = true;
-      isAdmin = resp.isAdmin;
-      lastStateKey = '';
-      saveRecorder();
-      toast(willBeAdmin ? '已进入编辑' : (currentRecorder ? `已接管记录 (原: ${currentRecorder})` : '已开始记录'));
-      overlay.remove(); unlockBody();
-      refreshData();
-    } catch (e) {
-      toast(e.message || '验证失败');
-    }
-  });
-
-  document.getElementById('btn-edit-cancel').addEventListener('click', () => { overlay.remove(); unlockBody(); });
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove(); unlockBody(); } });
-
-  // Focus name input
-  setTimeout(() => document.getElementById('edit-name-input')?.focus(), 300);
 }
 
 async function handleClaim() {

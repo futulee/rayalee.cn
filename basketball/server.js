@@ -1,4 +1,6 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const db = require('./db');
 
 db.init();
@@ -10,11 +12,75 @@ app.use(express.json());
 app.use('/basketball', express.static('public'));
 
 const API = '/basketball/api';
+const BACKUP_DIR = path.join(__dirname, 'data', 'backups');
+
+function backupTimestamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+async function backupDatabase(reason) {
+  try {
+    if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const dest = path.join(BACKUP_DIR, `basketball-${backupTimestamp()}${reason ? '-' + reason : ''}.db`);
+    await db.backup(dest);
+    console.log(`[backup] ${reason || 'manual'} -> ${dest}`);
+    pruneBackups();
+    return dest;
+  } catch (e) {
+    console.error('[backup] failed:', e.message);
+    return null;
+  }
+}
+
+function pruneBackups() {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith('.db')).sort();
+    while (files.length > 30) {
+      const oldest = files.shift();
+      fs.unlinkSync(path.join(BACKUP_DIR, oldest));
+    }
+  } catch (e) {}
+}
 
 // --- Players ---
 
 app.get(`${API}/players`, (_req, res) => {
   res.json(db.getAllPlayers());
+});
+
+app.post(`${API}/players`, (req, res) => {
+  const { number, name, password } = req.body;
+  if (!name || number === undefined) {
+    return res.status(400).json({ error: 'name and number are required' });
+  }
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  const id = db.createPlayer({ number, name });
+  res.status(201).json({ id });
+});
+
+app.put(`${API}/players/order`, (req, res) => {
+  const { order, password } = req.body;
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array' });
+  db.setPlayerOrder(order);
+  res.json({ ok: true });
+});
+
+app.put(`${API}/players/:id`, (req, res) => {
+  const { number, name, active, password } = req.body;
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  const player = db.updatePlayer(Number(req.params.id), { number, name, active });
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  res.json(player);
+});
+
+app.delete(`${API}/players/:id`, (req, res) => {
+  const { password } = req.body;
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  db.deletePlayer(Number(req.params.id));
+  res.json({ ok: true });
 });
 
 app.get(`${API}/players/:id/stats`, (req, res) => {
@@ -32,10 +98,11 @@ app.get(`${API}/games`, (_req, res) => {
 });
 
 app.post(`${API}/games`, (req, res) => {
-  const { opponent, game_date, location, notes } = req.body;
+  const { opponent, game_date, location, notes, password } = req.body;
   if (!opponent || !game_date) {
     return res.status(400).json({ error: 'opponent and game_date are required' });
   }
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
   const id = db.createGame({ opponent, game_date, location, notes });
   res.status(201).json({ id });
 });
@@ -48,13 +115,25 @@ app.get(`${API}/games/:id`, (req, res) => {
 
 app.put(`${API}/games/:id`, (req, res) => {
   const { our_score, opponent_score, status, recorder_name, opponent, game_date, location, notes } = req.body;
-  const game = db.updateGame(Number(req.params.id), { our_score, opponent_score, status, recorder_name, opponent, game_date, location, notes });
+  const gid = Number(req.params.id);
+  const before = db.getGame(gid);
+  const game = db.updateGame(gid, { our_score, opponent_score, status, recorder_name, opponent, game_date, location, notes });
   if (!game) return res.status(404).json({ error: 'Game not found' });
+  if (status === 'finished' && before && before.status !== 'finished') {
+    backupDatabase('finish'); // fire-and-forget
+  }
   res.json(game);
 });
 
-app.delete(`${API}/games/:id`, (req, res) => {
-  db.deleteGame(Number(req.params.id));
+app.delete(`${API}/games/:id`, async (req, res) => {
+  const { password } = req.body;
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
+  const gid = Number(req.params.id);
+  const g = db.getGame(gid);
+  console.log(`[DELETE /games/${gid}] ${g ? `${g.game_date} ${g.opponent} ${g.status}` : 'not-found'} at ${new Date().toISOString()}`);
+  const backupPath = await backupDatabase('pre-delete');
+  if (!backupPath) return res.status(500).json({ error: '备份失败，已取消删除' });
+  db.deleteGame(gid);
   res.json({ ok: true });
 });
 
@@ -65,23 +144,34 @@ app.get(`${API}/config/recorder-code`, (_req, res) => {
 });
 
 app.put(`${API}/config/recorder-code`, (req, res) => {
-  const { code } = req.body;
+  const { code, password } = req.body;
   if (!code || !/^\d{4}$/.test(code)) {
     return res.status(400).json({ error: 'code must be a 4-digit string' });
   }
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '密码错误' });
   db.setRecorderCode(code);
   res.json({ code });
 });
 
-app.get(`${API}/config/admin-password`, (_req, res) => {
-  res.json({ password: db.getAdminPassword() });
+app.post(`${API}/auth/admin`, (req, res) => {
+  const { username, password } = req.body;
+  if (username === db.getAdminUsername() && password === db.getAdminPassword()) {
+    return res.json({ ok: true });
+  }
+  res.status(403).json({ error: '用户名或密码错误' });
 });
 
-app.put(`${API}/config/admin-password`, (req, res) => {
-  const { password } = req.body;
-  if (!password) return res.status(400).json({ error: 'password is required' });
-  db.setAdminPassword(password);
-  res.json({ password });
+app.get(`${API}/config/admin`, (_req, res) => {
+  res.json({ username: db.getAdminUsername() });
+});
+
+app.put(`${API}/config/admin`, (req, res) => {
+  const { currentPassword, username, password } = req.body;
+  if (currentPassword !== db.getAdminPassword()) return res.status(403).json({ error: '当前密码错误' });
+  if (!username) return res.status(400).json({ error: 'username is required' });
+  db.setAdminUsername(username);
+  if (password) db.setAdminPassword(password);
+  res.json({ username: db.getAdminUsername() });
 });
 
 app.post(`${API}/games/:id/claim`, (req, res) => {

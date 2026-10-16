@@ -1,10 +1,10 @@
-import { api } from '../api.js?v=31';
+import { api } from '../api.js?v=36';
 import { navigate } from '../router.js?v=31';
 import { setPageTitle } from '../share.js?v=31';
 
 export async function render(main) {
   setPageTitle('Raya 篮球生活');
-  document.getElementById('breadcrumb-trail').innerHTML = '<span class="current">篮球生活</span> <a href="#/admin" style="font-size:.7rem;color:rgba(255,255,255,.4);text-decoration:none;margin-left:6px" title="球队管理">⚙</a>';
+  document.getElementById('breadcrumb-trail').innerHTML = '<span class="current">篮球生活</span> <a href="#/admin" style="font-size:.7rem;color:rgba(255,255,255,.4);text-decoration:none;margin-left:6px" title="管理后台">⚙</a>';
 
   main.innerHTML = '<div id="dashboard"></div><div id="home-games"></div>';
   await loadDashboard();
@@ -145,7 +145,7 @@ function gameCard(g) {
           <div style="font-weight:700;font-size:1rem">深圳湾女篮 vs ${h(g.opponent)} ${resultTag} ${statusTag}</div>
           ${g.recorder_name ? `<div style="font-size:.75rem;color:var(--text-muted)">记录: ${h(g.recorder_name)}</div>` : ''}
           ${g.location ? `<div style="font-size:.75rem;color:var(--text-muted)">📍 ${h(g.location)}</div>` : ''}
-          ${g.notes ? `<div style="font-size:.72rem;color:#f97316;font-weight:600">🔴 ${h(g.notes)}</div>` : ''}
+          ${g.notes ? `<div style="font-size:.72rem;color:#f97316;font-weight:600">🏷️ ${h(g.notes)}</div>` : ''}
         </div>
         <div style="font-size:1.4rem;font-weight:800;text-align:right">
           ${our} : ${opp}

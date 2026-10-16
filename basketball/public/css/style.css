@@ -303,6 +303,23 @@ input[type="date"].form-input {
 /* === Pin button === */
 .pin-btn { width: 16px; padding: 0 !important; text-align: center; flex-shrink: 0; }
 
+/* === Admin === */
+.admin-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 6px 0; border-bottom: 1px solid #f3f4f6; font-size: .85rem;
+}
+.departed-tag {
+  display: inline-block; margin-left: 6px; padding: 1px 6px;
+  border-radius: 8px; font-size: .62rem; font-weight: 700;
+  color: #9ca3af; background: #f3f4f6; vertical-align: middle;
+}
+.order-btn {
+  width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 8px;
+  background: #fff; color: var(--text-muted); font-size: 1rem; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.order-btn:disabled { opacity: .3; cursor: not-allowed; }
+
 /* === Share image modal === */
 .share-img-container { text-align: center; }
 .share-img-container canvas { max-width: 100%; border-radius: 8px; }

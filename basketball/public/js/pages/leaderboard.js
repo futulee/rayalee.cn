@@ -1,4 +1,4 @@
-import { api } from '../api.js?v=31';
+import { api } from '../api.js?v=36';
 import { generateLeaderboardImage, toast, setPageTitle, lockBody, unlockBody } from '../share.js?v=31';
 import { navigate } from '../router.js?v=31';
 
@@ -11,9 +11,9 @@ export async function render(main) {
 
   main.innerHTML = `
     <div class="tabs">
-      <div class="tab active" data-type="points">总得分</div>
-      <div class="tab" data-type="steals">抢断</div>
-      <div class="tab" data-type="rebounds">篮板</div>
+      <div class="tab${currentType === 'points' ? ' active' : ''}" data-type="points">总得分</div>
+      <div class="tab${currentType === 'steals' ? ' active' : ''}" data-type="steals">抢断</div>
+      <div class="tab${currentType === 'rebounds' ? ' active' : ''}" data-type="rebounds">篮板</div>
     </div>
     <div id="lb-content"></div>
     <div style="text-align:center;padding:16px">
@@ -65,7 +65,7 @@ function lbRow(p, i) {
     <div class="lb-row" data-id="${p.id}">
       <div class="lb-rank${rankClass}">${i + 1}</div>
       <div class="lb-num">${p.number}</div>
-      <div class="lb-name">${h(p.name)}</div>
+      <div class="lb-name">${h(p.name)}${p.active === 0 ? '<span class="departed-tag">离队</span>' : ''}</div>
       <div style="font-size:.75rem;color:var(--text-muted);min-width:40px;text-align:right">${p.games_played}场</div>
       <div class="lb-total">${p.total}</div>
     </div>`;

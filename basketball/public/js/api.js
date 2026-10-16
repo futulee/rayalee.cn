@@ -13,6 +13,10 @@ async function request(url, options = {}) {
 export const api = {
   // Players
   getPlayers: () => request('/players'),
+  createPlayer: (data) => request('/players', { method: 'POST', body: JSON.stringify(data) }),
+  updatePlayer: (id, data) => request(`/players/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deletePlayer: (id, password) => request(`/players/${id}`, { method: 'DELETE', body: JSON.stringify({ password }) }),
+  setPlayerOrder: (order, password) => request('/players/order', { method: 'PUT', body: JSON.stringify({ order, password }) }),
   getPlayerStats: (id) => request(`/players/${id}/stats`),
 
   // Games
@@ -20,16 +24,19 @@ export const api = {
   createGame: (data) => request('/games', { method: 'POST', body: JSON.stringify(data) }),
   getGame: (id) => request(`/games/${id}`),
   updateGame: (id, data) => request(`/games/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteGame: (id) => request(`/games/${id}`, { method: 'DELETE' }),
+  deleteGame: (id, password) => request(`/games/${id}`, { method: 'DELETE', body: JSON.stringify({ password }) }),
 
   // Recorder
   getRecorderCode: () => request('/config/recorder-code'),
-  setRecorderCode: (code) => request('/config/recorder-code', { method: 'PUT', body: JSON.stringify({ code }) }),
-  getAdminPassword: () => request('/config/admin-password'),
-  setAdminPassword: (password) => request('/config/admin-password', { method: 'PUT', body: JSON.stringify({ password }) }),
+  setRecorderCode: (code, password) => request('/config/recorder-code', { method: 'PUT', body: JSON.stringify({ code, password }) }),
   claimRecorder: (gameId, code, name) => request(`/games/${gameId}/claim`, {
     method: 'POST', body: JSON.stringify({ code, name }),
   }),
+
+  // Admin
+  login: (username, password) => request('/auth/admin', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  getAdminConfig: () => request('/config/admin'),
+  setAdminConfig: (currentPassword, username, password) => request('/config/admin', { method: 'PUT', body: JSON.stringify({ currentPassword, username, password }) }),
 
   // Stats
   updateStat: (gameId, playerId, field, delta) => request(`/games/${gameId}/stats/${playerId}`, {
