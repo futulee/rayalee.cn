@@ -6,7 +6,19 @@ export function route(path, handler) {
 }
 
 export function navigate(hash) {
+  const current = window.location.hash.slice(1) || '/';
+  if (current !== hash) {
+    sessionStorage.setItem('bb_referrer', current);
+  }
   window.location.hash = hash;
+}
+
+export function getReferrer() {
+  return sessionStorage.getItem('bb_referrer') || '/games';
+}
+
+export function clearReferrer() {
+  sessionStorage.removeItem('bb_referrer');
 }
 
 export function start() {

@@ -1,8 +1,8 @@
 import { api } from '../api.js?v=38';
-import { navigate } from '../router.js?v=31';
+import { navigate } from '../router.js?v=32';
 import { setPageTitle, toast, lockBody, unlockBody } from '../share.js?v=31';
 
-let currentTab = 'team';
+let currentTab = sessionStorage.getItem('bb_admin_tab') || 'team';
 
 export async function render(main) {
   const authed = sessionStorage.getItem('bb_admin_auth') === '1';
@@ -26,6 +26,7 @@ export async function render(main) {
   main.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
       currentTab = tab.dataset.tab;
+      sessionStorage.setItem('bb_admin_tab', currentTab);
       render(main);
     });
   });

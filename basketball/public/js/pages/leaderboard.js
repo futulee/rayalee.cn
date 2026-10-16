@@ -1,6 +1,6 @@
 import { api } from '../api.js?v=36';
 import { generateLeaderboardImage, toast, setPageTitle, lockBody, unlockBody } from '../share.js?v=31';
-import { navigate } from '../router.js?v=31';
+import { navigate } from '../router.js?v=32';
 
 let currentType = 'points';
 let currentData = [];

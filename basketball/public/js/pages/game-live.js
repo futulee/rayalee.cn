@@ -1,5 +1,6 @@
 import { api } from '../api.js?v=37';
 import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js?v=32';
+import { navigate, getReferrer } from '../router.js?v=32';
 
 let gameId, isRecorder = false, isAdmin = false, pollTimer = null;
 let claimName = '';
@@ -19,11 +20,20 @@ export async function render(main, params) {
   document.getElementById('breadcrumb-trail').innerHTML = '<a href="#/">篮球生活</a> <span class="sep">›</span> <span class="current">比赛详情</span>';
 
   main.innerHTML = `
+    <div style="padding:6px 0"><a href="#" id="btn-back-ref" style="font-size:.85rem;color:var(--primary);text-decoration:none">‹ 返回</a></div>
     <div id="score-header" class="score-header"></div>
     <div id="claim-area"></div>
     <div id="players-area"></div>
     <div id="game-footer"></div>
   `;
+
+  const backBtn = document.getElementById('btn-back-ref');
+  if (backBtn) {
+    backBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate(getReferrer());
+    });
+  }
 
   // Restore recorder state from localStorage
   restoreRecorder();

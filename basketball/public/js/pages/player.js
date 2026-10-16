@@ -1,6 +1,6 @@
 import { api } from '../api.js?v=31';
 import { setPageTitle, generatePlayerImage, toast, lockBody, unlockBody } from '../share.js?v=31';
-import { navigate } from '../router.js?v=31';
+import { navigate } from '../router.js?v=32';
 
 export async function render(main, params) {
   const playerId = params.id;
