@@ -40,9 +40,10 @@ function gameCard(g) {
   let statusTag = '';
   if (g.status === 'live') {
     const today = new Date().toISOString().slice(0, 10);
-    if (g.game_date > today) {
+    const datePart = (g.game_date || '').slice(0, 10);
+    if (datePart > today) {
       statusTag = '<span style="color:#3b82f6;font-size:.75rem;font-weight:600">◷ 即将开始</span>';
-    } else if (g.game_date === today) {
+    } else if (datePart === today) {
       statusTag = '<span style="color:#f97316;font-size:.75rem;font-weight:600">● 进行中</span>';
     } else {
       statusTag = '<span style="color:#f97316;font-size:.75rem;font-weight:600">● 进行中</span>';

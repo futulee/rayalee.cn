@@ -387,6 +387,10 @@ function showNewGameModal() {
         <div class="form-date-wrap"><input class="form-input" type="date" id="new-date" value="${today}"></div>
       </div>
       <div class="form-group">
+        <label class="form-label">开始时间</label>
+        <div class="form-date-wrap"><input class="form-input" type="time" id="new-time" placeholder="选填"></div>
+      </div>
+      <div class="form-group">
         <label class="form-label">比赛地点</label>
         <input class="form-input" id="new-location" placeholder="选填" autocomplete="off">
       </div>
@@ -402,11 +406,13 @@ function showNewGameModal() {
 
   document.getElementById('btn-submit-game').addEventListener('click', async () => {
     const opponent = document.getElementById('new-opponent').value.trim();
-    const game_date = document.getElementById('new-date').value;
+    const dateVal = document.getElementById('new-date').value;
+    const timeVal = document.getElementById('new-time').value;
     const location = document.getElementById('new-location').value.trim();
     const notes = document.getElementById('new-notes').value.trim();
     if (!opponent) { toast('请输入对手名称'); return; }
-    if (!game_date) { toast('请选择比赛日期'); return; }
+    if (!dateVal) { toast('请选择比赛日期'); return; }
+    const game_date = timeVal ? `${dateVal} ${timeVal}` : dateVal;
     try {
       await api.createGame({ opponent, game_date, location, notes, password: pwd() });
       overlay.remove(); unlockBody();

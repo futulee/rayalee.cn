@@ -79,13 +79,14 @@ function renderScoreHeader(game) {
   }
 
   const header = document.getElementById('score-header');
+  const datePart = (game.game_date || '').slice(0, 10);
   const metaLine = [game.game_date, game.location].filter(Boolean).join(' · ');
   let statusBadge = '';
   if (game.status === 'live') {
     const today = new Date().toISOString().slice(0, 10);
-    if (game.game_date > today) {
+    if (datePart > today) {
       statusBadge = '<div style="font-size:.8rem;margin-top:4px"><span style="background:#dbeafe;color:#2563eb;padding:2px 10px;border-radius:10px;font-weight:600">即将开始</span></div>';
-    } else if (game.game_date === today) {
+    } else if (datePart === today) {
       statusBadge = '<div style="font-size:.8rem;margin-top:4px"><span style="background:#ffedd5;color:#f97316;padding:2px 10px;border-radius:10px;font-weight:600">● 进行中</span></div>';
     }
   }
@@ -210,7 +211,8 @@ function renderFooter(game) {
         <label class="form-label">比赛信息</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <input class="form-input" id="edit-opponent" value="${h(game.opponent)}" placeholder="对手" style="flex:2;min-width:120px" autocomplete="off">
-          <div class="form-date-wrap" style="flex:1;min-width:120px"><input class="form-input" type="date" id="edit-date" value="${game.game_date}" style="width:100%"></div>
+          <div class="form-date-wrap" style="flex:1;min-width:120px"><input class="form-input" type="date" id="edit-date" value="${(game.game_date || '').slice(0, 10)}" style="width:100%"></div>
+          <div class="form-date-wrap" style="flex:1;min-width:100px"><input class="form-input" type="time" id="edit-time" value="${(game.game_date || '').slice(11, 16)}" placeholder="选填" style="width:100%"></div>
         </div>
         <input class="form-input" id="edit-location" value="${h(game.location || '')}" placeholder="比赛地点（选填）" style="margin-top:6px" autocomplete="off">
         <input class="form-input" id="edit-notes" value="${h(game.notes || '')}" placeholder="备注（选填，如：决赛）" style="margin-top:6px" autocomplete="off">
@@ -240,11 +242,13 @@ function renderFooter(game) {
     if (saveInfoBtn) {
       saveInfoBtn.addEventListener('click', async () => {
         const opponent = document.getElementById('edit-opponent').value.trim();
-        const game_date = document.getElementById('edit-date').value;
+        const dateVal = document.getElementById('edit-date').value;
+        const timeVal = document.getElementById('edit-time').value;
         const location = document.getElementById('edit-location').value.trim();
         const notes = document.getElementById('edit-notes').value.trim();
         const recorder_name = document.getElementById('edit-recorder').value.trim();
-        if (!opponent || !game_date) { toast('对手和日期不能为空'); return; }
+        if (!opponent || !dateVal) { toast('对手和日期不能为空'); return; }
+        const game_date = timeVal ? `${dateVal} ${timeVal}` : dateVal;
         try {
           await api.updateGame(gameId, { opponent, game_date, location, notes, recorder_name });
           toast('比赛信息已更新');
