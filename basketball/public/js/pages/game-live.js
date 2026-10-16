@@ -384,8 +384,7 @@ async function renderRosterManager(game) {
       try {
         await api.removePlayerFromGame(gameId, pid, adminPwd);
         toast(`${label} 已移除`);
-        lastStateKey = '';
-        refreshData();
+        await refreshAfterRosterChange();
       } catch (e) { toast(e.message || '移除失败'); }
     });
   });
@@ -395,11 +394,19 @@ async function renderRosterManager(game) {
       try {
         await api.addPlayerToGame(gameId, pid, adminPwd);
         toast('已添加');
-        lastStateKey = '';
-        refreshData();
+        await refreshAfterRosterChange();
       } catch (e) { toast(e.message || '添加失败'); }
     });
   });
+}
+
+async function refreshAfterRosterChange() {
+  try {
+    const game = await api.getGame(gameId);
+    renderScoreHeader(game);
+    renderPlayers(game);
+    await renderRosterManager(game);
+  } catch (e) {}
 }
 
 function recorderPlayerCard(s) {
