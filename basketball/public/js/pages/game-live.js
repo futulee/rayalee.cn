@@ -19,14 +19,14 @@ export async function render(main, params) {
 
   document.getElementById('breadcrumb-trail').innerHTML = '<a href="#/">篮球生活</a> <span class="sep">›</span> <span class="current">比赛详情</span>';
 
-  main.innerHTML = `
-    <div style="padding:6px 0"><a href="#" id="btn-back-ref" style="font-size:.85rem;color:var(--primary);text-decoration:none">‹ 返回</a></div>
-    <div id="score-header" class="score-header"></div>
-    <div id="claim-area"></div>
-    <div id="players-area"></div>
-    <div id="game-footer"></div>
-  `;
-
+  const topbar = document.getElementById('topbar');
+  let navActions = topbar.querySelector('.nav-actions');
+  if (!navActions) {
+    navActions = document.createElement('div');
+    navActions.className = 'nav-actions';
+    topbar.appendChild(navActions);
+  }
+  navActions.innerHTML = '<a href="#" id="btn-back-ref" style="color:rgba(255,255,255,.85);text-decoration:none;font-size:.85rem;font-weight:500;padding:6px 8px">‹ 返回</a>';
   const backBtn = document.getElementById('btn-back-ref');
   if (backBtn) {
     backBtn.addEventListener('click', (e) => {
@@ -34,6 +34,13 @@ export async function render(main, params) {
       navigate(getReferrer());
     });
   }
+
+  main.innerHTML = `
+    <div id="score-header" class="score-header"></div>
+    <div id="claim-area"></div>
+    <div id="players-area"></div>
+    <div id="game-footer"></div>
+  `;
 
   // Restore recorder state from localStorage
   restoreRecorder();
@@ -53,6 +60,7 @@ export async function render(main, params) {
 
 export function cleanup() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  document.querySelector('#topbar .nav-actions')?.remove();
 }
 
 async function refreshData() {
