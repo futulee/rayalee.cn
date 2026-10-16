@@ -218,8 +218,9 @@ function renderFooter(game) {
         <input class="form-input" id="edit-notes" value="${h(game.notes || '')}" placeholder="备注（选填，如：决赛）" style="margin-top:6px" autocomplete="off">
         <input class="form-input" id="edit-recorder" value="${h(game.recorder_name || '')}" placeholder="记录员（可修改）" style="margin-top:6px" autocomplete="off">
         <button class="btn btn-sm btn-outline" id="btn-save-info" style="margin-top:6px">保存信息</button>
+        <button class="btn btn-sm btn-outline" id="btn-open-roster" style="margin-top:6px">👥 参赛名单管理</button>
       </div>
-      <div id="roster-manager" style="margin-bottom:10px"></div>` : '';
+      <div id="roster-modal" class="modal-overlay" style="display:none"></div>` : '';
     footer.innerHTML = `
       ${infoFormHtml}
       <div class="score-editor">
@@ -256,7 +257,10 @@ function renderFooter(game) {
           refreshData();
         } catch (e) { toast('更新失败'); }
       });
-      if (isAdmin) renderRosterManager(game);
+      if (isAdmin) {
+        const rosterBtn = document.getElementById('btn-open-roster');
+        if (rosterBtn) rosterBtn.addEventListener('click', () => openRosterModal(game));
+      }
     }
 
     document.getElementById('btn-save-scores').addEventListener('click', async () => {
@@ -326,105 +330,98 @@ function renderFooter(game) {
   }
 }
 
-async function renderRosterManager(game) {
-  const el = document.getElementById('roster-manager');
-  if (!el) return;
-  let players;
-  try {
-    players = await api.getPlayers();
-  } catch (e) {
-    el.innerHTML = '<div style="font-size:.75rem;color:var(--text-muted);padding:4px 0">名单加载失败</div>';
-    return;
-  }
-  renderRosterManagerWith(game, players);
+async function openRosterModal() {
+  const modal = document.getElementById('roster-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  lockBody();
+  modal.innerHTML = `
+    <div class="modal-content" style="max-height:80vh;overflow-y:auto">
+      <div class="modal-title">👥 参赛名单</div>
+      <div id="roster-body" style="font-size:.75rem;color:var(--text-muted);text-align:center;padding:10px">加载中...</div>
+      <button class="btn btn-sm btn-block" style="margin-top:10px;color:var(--text-muted)" id="btn-close-roster">关闭</button>
+    </div>`;
+  document.getElementById('btn-close-roster').addEventListener('click', closeRosterModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeRosterModal(); }, { once: true });
+  await refreshRosterModal();
 }
 
-function renderRosterManagerWith(game, players) {
-  const el = document.getElementById('roster-manager');
-  if (!el) return;
+function closeRosterModal() {
+  const modal = document.getElementById('roster-modal');
+  if (modal) { modal.style.display = 'none'; modal.innerHTML = ''; }
+  unlockBody();
+  refreshData();
+}
+
+async function refreshRosterModal() {
+  const body = document.getElementById('roster-body');
+  if (!body) return;
+  let game, players;
+  try {
+    [game, players] = await Promise.all([api.getGame(gameId), api.getPlayers()]);
+  } catch (e) { body.innerHTML = '<div>加载失败</div>'; return; }
   const inGame = new Map(game.stats.map(s => [s.player_id, s]));
   const sorted = [...players].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999) || a.number - b.number);
   const activeAbsent = sorted.filter(p => p.active === 1 && !inGame.has(p.id));
   const departedAbsent = sorted.filter(p => p.active === 0 && !inGame.has(p.id));
   const adminPwd = sessionStorage.getItem('bb_admin_pwd') || '';
 
-  el.innerHTML = `
-    <div class="card" style="padding:10px 12px">
-      <div style="font-weight:700;font-size:.85rem;margin-bottom:6px">👥 参赛名单 <span style="font-weight:400;color:var(--text-muted);font-size:.75rem">（${inGame.size} 人）</span></div>
-      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:4px">已参赛</div>
-      <div id="roster-present">
-        ${game.stats.length === 0 ? '<div style="font-size:.75rem;color:var(--text-muted);padding:4px 0">无</div>' : game.stats.map(s => `
-          <div class="admin-row" data-pid="${s.player_id}">
-            <span style="flex:1;min-width:0"><span style="font-weight:700">#${s.number}</span> ${h(s.name)}${s.active === 0 ? ' <span class="departed-tag">离队</span>' : ''}</span>
-            <button class="btn btn-sm btn-outline roster-remove" data-pid="${s.player_id}" data-num="${s.number}" data-name="${h(s.name)}">移除</button>
+  body.innerHTML = `
+    <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:6px">已参赛 <span style="color:var(--primary);font-weight:700">${inGame.size}</span> 人</div>
+    <div id="roster-present">
+      ${game.stats.length === 0 ? '<div style="font-size:.75rem;color:var(--text-muted);padding:4px 0">无</div>' : game.stats.map(s => `
+        <div class="admin-row" data-pid="${s.player_id}">
+          <span style="flex:1;min-width:0"><span style="font-weight:700">#${s.number}</span> ${h(s.name)}${s.active === 0 ? ' <span class="departed-tag">离队</span>' : ''}</span>
+          <button class="btn btn-sm btn-outline roster-remove" data-pid="${s.player_id}" data-num="${s.number}" data-name="${h(s.name)}">移除</button>
+        </div>
+      `).join('')}
+    </div>
+    ${activeAbsent.length > 0 ? `
+      <div style="font-size:.75rem;color:var(--text-muted);margin:8px 0 4px">未参赛 · 在队</div>
+      <div id="roster-absent-active">
+        ${activeAbsent.map(p => `
+          <div class="admin-row" data-pid="${p.id}">
+            <span style="flex:1;min-width:0"><span style="font-weight:700">#${p.number}</span> ${h(p.name)}</span>
+            <button class="btn btn-sm btn-primary roster-add" data-pid="${p.id}">添加</button>
           </div>
         `).join('')}
-      </div>
-      ${activeAbsent.length > 0 ? `
-        <div style="font-size:.75rem;color:var(--text-muted);margin:8px 0 4px">未参赛 · 在队</div>
-        <div id="roster-absent-active">
-          ${activeAbsent.map(p => `
-            <div class="admin-row" data-pid="${p.id}">
-              <span style="flex:1;min-width:0"><span style="font-weight:700">#${p.number}</span> ${h(p.name)}</span>
-              <button class="btn btn-sm btn-primary roster-add" data-pid="${p.id}">添加</button>
-            </div>
-          `).join('')}
-        </div>` : ''}
-      ${departedAbsent.length > 0 ? `
-        <div style="font-size:.75rem;color:var(--text-muted);margin:8px 0 4px">未参赛 · 离队</div>
-        <div id="roster-absent-departed">
-          ${departedAbsent.map(p => `
-            <div class="admin-row" data-pid="${p.id}">
-              <span style="flex:1;min-width:0"><span style="font-weight:700">#${p.number}</span> ${h(p.name)} <span class="departed-tag">离队</span></span>
-              <button class="btn btn-sm btn-primary roster-add" data-pid="${p.id}">添加</button>
-            </div>
-          `).join('')}
-        </div>` : ''}
-    </div>`;
+      </div>` : ''}
+    ${departedAbsent.length > 0 ? `
+      <div style="font-size:.75rem;color:var(--text-muted);margin:8px 0 4px">未参赛 · 离队</div>
+      <div id="roster-absent-departed">
+        ${departedAbsent.map(p => `
+          <div class="admin-row" data-pid="${p.id}">
+            <span style="flex:1;min-width:0"><span style="font-weight:700">#${p.number}</span> ${h(p.name)} <span class="departed-tag">离队</span></span>
+            <button class="btn btn-sm btn-primary roster-add" data-pid="${p.id}">添加</button>
+          </div>
+        `).join('')}
+      </div>` : ''}`;
 
-  el.querySelectorAll('.roster-remove').forEach(btn => {
+  body.querySelectorAll('.roster-remove').forEach(btn => {
     btn.addEventListener('click', async () => {
       const pid = parseInt(btn.dataset.pid);
       const label = `#${btn.dataset.num} ${btn.dataset.name}`;
-      const rosterEl = document.getElementById('roster-manager');
-      const anchorTop = rosterEl ? rosterEl.getBoundingClientRect().top : null;
+      const scrollBefore = body.scrollTop;
       try {
         await api.removePlayerFromGame(gameId, pid, adminPwd);
         toast(`${label} 已移除`);
-        await refreshAfterRosterChange(anchorTop);
+        await refreshRosterModal();
+        body.scrollTop = scrollBefore;
       } catch (e) { toast(e.message || '移除失败'); }
     });
   });
-  el.querySelectorAll('.roster-add').forEach(btn => {
+  body.querySelectorAll('.roster-add').forEach(btn => {
     btn.addEventListener('click', async () => {
       const pid = parseInt(btn.dataset.pid);
-      const rosterEl = document.getElementById('roster-manager');
-      const anchorTop = rosterEl ? rosterEl.getBoundingClientRect().top : null;
+      const scrollBefore = body.scrollTop;
       try {
         await api.addPlayerToGame(gameId, pid, adminPwd);
         toast('已添加');
-        await refreshAfterRosterChange(anchorTop);
+        await refreshRosterModal();
+        body.scrollTop = scrollBefore;
       } catch (e) { toast(e.message || '添加失败'); }
     });
   });
-}
-
-async function refreshAfterRosterChange(anchorTop) {
-  const scrollYBefore = window.scrollY;
-  try {
-    const [game, players] = await Promise.all([api.getGame(gameId), api.getPlayers()]);
-    renderScoreHeader(game);
-    renderPlayers(game);
-    renderRosterManagerWith(game, players);
-    if (anchorTop != null) {
-      const rosterEl = document.getElementById('roster-manager');
-      const newTop = rosterEl ? rosterEl.getBoundingClientRect().top : null;
-      if (newTop != null) {
-        const delta = anchorTop - newTop;
-        if (Math.abs(delta) > 2) window.scrollTo(0, scrollYBefore + delta);
-      }
-    }
-  } catch (e) {}
 }
 
 function recorderPlayerCard(s) {
