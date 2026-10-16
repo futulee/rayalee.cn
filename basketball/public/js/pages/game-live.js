@@ -329,7 +329,6 @@ function renderFooter(game) {
 async function renderRosterManager(game) {
   const el = document.getElementById('roster-manager');
   if (!el) return;
-  el.innerHTML = '<div style="font-size:.75rem;color:var(--text-muted);padding:4px 0">加载名单...</div>';
   let players;
   try {
     players = await api.getPlayers();
@@ -337,6 +336,12 @@ async function renderRosterManager(game) {
     el.innerHTML = '<div style="font-size:.75rem;color:var(--text-muted);padding:4px 0">名单加载失败</div>';
     return;
   }
+  renderRosterManagerWith(game, players);
+}
+
+function renderRosterManagerWith(game, players) {
+  const el = document.getElementById('roster-manager');
+  if (!el) return;
   const inGame = new Map(game.stats.map(s => [s.player_id, s]));
   const sorted = [...players].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999) || a.number - b.number);
   const activeAbsent = sorted.filter(p => p.active === 1 && !inGame.has(p.id));
@@ -381,31 +386,44 @@ async function renderRosterManager(game) {
     btn.addEventListener('click', async () => {
       const pid = parseInt(btn.dataset.pid);
       const label = `#${btn.dataset.num} ${btn.dataset.name}`;
+      const rosterEl = document.getElementById('roster-manager');
+      const anchorTop = rosterEl ? rosterEl.getBoundingClientRect().top : null;
       try {
         await api.removePlayerFromGame(gameId, pid, adminPwd);
         toast(`${label} 已移除`);
-        await refreshAfterRosterChange();
+        await refreshAfterRosterChange(anchorTop);
       } catch (e) { toast(e.message || '移除失败'); }
     });
   });
   el.querySelectorAll('.roster-add').forEach(btn => {
     btn.addEventListener('click', async () => {
       const pid = parseInt(btn.dataset.pid);
+      const rosterEl = document.getElementById('roster-manager');
+      const anchorTop = rosterEl ? rosterEl.getBoundingClientRect().top : null;
       try {
         await api.addPlayerToGame(gameId, pid, adminPwd);
         toast('已添加');
-        await refreshAfterRosterChange();
+        await refreshAfterRosterChange(anchorTop);
       } catch (e) { toast(e.message || '添加失败'); }
     });
   });
 }
 
-async function refreshAfterRosterChange() {
+async function refreshAfterRosterChange(anchorTop) {
+  const scrollYBefore = window.scrollY;
   try {
-    const game = await api.getGame(gameId);
+    const [game, players] = await Promise.all([api.getGame(gameId), api.getPlayers()]);
     renderScoreHeader(game);
     renderPlayers(game);
-    await renderRosterManager(game);
+    renderRosterManagerWith(game, players);
+    if (anchorTop != null) {
+      const rosterEl = document.getElementById('roster-manager');
+      const newTop = rosterEl ? rosterEl.getBoundingClientRect().top : null;
+      if (newTop != null) {
+        const delta = anchorTop - newTop;
+        if (Math.abs(delta) > 2) window.scrollTo(0, scrollYBefore + delta);
+      }
+    }
   } catch (e) {}
 }
 
