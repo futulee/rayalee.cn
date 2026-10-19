@@ -3,7 +3,7 @@ import { render as homePage } from './pages/home.js?v=40';
 import { render as gamesPage } from './pages/games.js?v=40';
 import { render as gameLivePage, cleanup as gameLiveCleanup } from './pages/game-live.js?v=50';
 import { render as leaderboardPage } from './pages/leaderboard.js?v=41';
-import { render as playerPage } from './pages/player.js?v=33';
+import { render as playerPage, cleanup as playerCleanup } from './pages/player.js?v=34';
 import { render as adminPage } from './pages/admin.js?v=43';
 
 route('/', (main) => { showBottomNav(true, 'home'); homePage(main); });
@@ -18,6 +18,7 @@ route('/game/:id', (main, params) => {
 route('/player/:id', (main, params) => {
   showBottomNav(false);
   playerPage(main, params);
+  return playerCleanup;
 });
 route('/admin', (main) => {
   showBottomNav(false);

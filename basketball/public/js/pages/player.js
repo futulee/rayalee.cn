@@ -1,10 +1,26 @@
 import { api } from '../api.js?v=31';
 import { setPageTitle, generatePlayerImage, toast, lockBody, unlockBody } from '../share.js?v=31';
-import { navigate } from '../router.js?v=32';
+import { navigate, getReferrer } from '../router.js?v=32';
 
 export async function render(main, params) {
   const playerId = params.id;
   document.getElementById('breadcrumb-trail').innerHTML = '<a href="#/">篮球生活</a> <span class="sep">›</span> <span class="current">球员详情</span>';
+
+  const topbar = document.getElementById('topbar');
+  let navActions = topbar.querySelector('.nav-actions');
+  if (!navActions) {
+    navActions = document.createElement('div');
+    navActions.className = 'nav-actions';
+    topbar.appendChild(navActions);
+  }
+  navActions.innerHTML = '<a href="#" id="btn-back-ref" style="color:rgba(255,255,255,.85);text-decoration:none;font-size:.85rem;font-weight:500;padding:6px 8px">‹ 返回</a>';
+  const backBtn = document.getElementById('btn-back-ref');
+  if (backBtn) {
+    backBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate(getReferrer());
+    });
+  }
 
   main.innerHTML = '<div class="empty"><p>加载中...</p></div>';
 
@@ -113,3 +129,7 @@ function showPlayerShareModal(imgData) {
 }
 
 function h(str) { return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+export function cleanup() {
+  document.querySelector('#topbar .nav-actions')?.remove();
+}
