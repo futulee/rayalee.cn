@@ -118,12 +118,13 @@ async function loadRecentGames() {
 }
 
 function gameCard(g) {
-  const our = g.our_score ?? '--';
+  const ourForShow = g.our_score != null ? g.our_score : g.computed_our_score;
+  const our = ourForShow != null ? ourForShow : '--';
   const opp = g.opponent_score ?? '--';
   let resultTag = '';
-  if (g.status === 'finished' && g.our_score != null && g.opponent_score != null) {
-    if (g.our_score > g.opponent_score) resultTag = '<span class="score-tag score-win">胜</span>';
-    else if (g.our_score < g.opponent_score) resultTag = '<span class="score-tag score-loss">负</span>';
+  if (g.status === 'finished' && ourForShow != null && g.opponent_score != null) {
+    if (ourForShow > g.opponent_score) resultTag = '<span class="score-tag score-win">胜</span>';
+    else if (ourForShow < g.opponent_score) resultTag = '<span class="score-tag score-loss">负</span>';
     else resultTag = '<span class="score-tag score-draw">平</span>';
   }
   let statusTag = '';

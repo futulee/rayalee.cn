@@ -1,10 +1,10 @@
 import { route, start } from './router.js?v=32';
-import { render as homePage } from './pages/home.js?v=39';
-import { render as gamesPage } from './pages/games.js?v=39';
-import { render as gameLivePage, cleanup as gameLiveCleanup } from './pages/game-live.js?v=47';
+import { render as homePage } from './pages/home.js?v=40';
+import { render as gamesPage } from './pages/games.js?v=40';
+import { render as gameLivePage, cleanup as gameLiveCleanup } from './pages/game-live.js?v=48';
 import { render as leaderboardPage } from './pages/leaderboard.js?v=41';
-import { render as playerPage } from './pages/player.js?v=32';
-import { render as adminPage } from './pages/admin.js?v=42';
+import { render as playerPage } from './pages/player.js?v=33';
+import { render as adminPage } from './pages/admin.js?v=43';
 
 route('/', (main) => { showBottomNav(true, 'home'); homePage(main); });
 route('/games', (main) => { showBottomNav(true, 'games'); gamesPage(main); });

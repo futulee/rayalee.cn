@@ -154,7 +154,9 @@ function getPlayerStats(playerId) {
 
   const games = db.prepare(`
     SELECT g.id, g.opponent, g.game_date, g.our_score, g.opponent_score,
-           gs.pts_2pt, gs.pts_3pt, gs.pts_1pt, gs.steals, gs.assists, gs.rebounds
+           gs.pts_2pt, gs.pts_3pt, gs.pts_1pt, gs.steals, gs.assists, gs.rebounds,
+           (SELECT COALESCE(SUM(gs2.pts_2pt*2 + gs2.pts_3pt*3 + gs2.pts_1pt), 0)
+            FROM game_stats gs2 WHERE gs2.game_id = g.id) as computed_our_score
     FROM game_stats gs
     JOIN games g ON g.id = gs.game_id
     WHERE gs.player_id = ? AND g.status = 'finished'
@@ -168,12 +170,20 @@ function getPlayerStats(playerId) {
 
 function getAllGames() {
   return db.prepare(`
-    SELECT * FROM games ORDER BY game_date DESC, id DESC
+    SELECT g.*,
+      (SELECT COALESCE(SUM(gs.pts_2pt*2 + gs.pts_3pt*3 + gs.pts_1pt), 0)
+       FROM game_stats gs WHERE gs.game_id = g.id) as computed_our_score
+    FROM games g ORDER BY g.game_date DESC, g.id DESC
   `).all();
 }
 
 function getGame(gameId) {
-  const game = db.prepare('SELECT * FROM games WHERE id = ?').get(gameId);
+  const game = db.prepare(`
+    SELECT g.*,
+      (SELECT COALESCE(SUM(gs.pts_2pt*2 + gs.pts_3pt*3 + gs.pts_1pt), 0)
+       FROM game_stats gs WHERE gs.game_id = g.id) as computed_our_score
+    FROM games g WHERE g.id = ?
+  `).get(gameId);
   if (!game) return null;
   const stats = db.prepare(`
     SELECT gs.*, p.number, p.name, p.active, p.sort_order

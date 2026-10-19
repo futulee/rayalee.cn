@@ -83,17 +83,19 @@ async function refreshData() {
 
 function renderScoreHeader(game) {
   const ourScore = computeOurScore(game.stats);
+  const computedOur = game.computed_our_score ?? ourScore;
+  const displayOur = game.our_score != null ? game.our_score : (computedOur > 0 ? computedOur : '--');
   const oppScore = game.opponent_score;
-  const displayOur = game.our_score != null ? game.our_score : (ourScore > 0 ? ourScore : '--');
   const displayOpp = oppScore != null ? oppScore : '--';
   let resultTag = '';
   let shareText = '';
 
-  if (game.status === 'finished' && game.our_score != null && oppScore != null) {
-    if (game.our_score > oppScore) resultTag = '<span class="score-tag score-win">胜</span>';
-    else if (game.our_score < oppScore) resultTag = '<span class="score-tag score-loss">负</span>';
+  if (game.status === 'finished' && oppScore != null && displayOur !== '--') {
+    const ourForCompare = game.our_score != null ? game.our_score : computedOur;
+    if (ourForCompare > oppScore) resultTag = '<span class="score-tag score-win">胜</span>';
+    else if (ourForCompare < oppScore) resultTag = '<span class="score-tag score-loss">负</span>';
     else resultTag = '<span class="score-tag score-draw">平</span>';
-    shareText = `${game.opponent} ${game.our_score}:${oppScore} ${game.our_score > oppScore ? '胜' : game.our_score < oppScore ? '负' : '平'}`;
+    shareText = `${game.opponent} ${ourForCompare}:${oppScore} ${ourForCompare > oppScore ? '胜' : ourForCompare < oppScore ? '负' : '平'}`;
   }
 
   const header = document.getElementById('score-header');
@@ -123,9 +125,11 @@ function renderScoreHeader(game) {
   header.dataset.shareText = shareText || `深圳湾女篮 vs ${game.opponent}，比分 ${shareScore}:${displayOpp}，来查看详细技术统计`;
   setPageTitle(shareTitle);
 
-  // Also update footer score input without re-rendering entire footer
+  // Update footer score input without re-rendering entire footer.
+  // Only auto-update in auto mode (our_score == null); in manual mode
+  // the input holds the admin's overridden value and must not be clobbered.
   const ourInput = document.getElementById('edit-our-score');
-  if (ourInput && game.our_score == null) {
+  if (ourInput && document.activeElement !== ourInput && game.our_score == null) {
     ourInput.value = ourScore;
   }
 }
@@ -243,11 +247,12 @@ function renderFooter(game) {
       ${infoFormHtml}
       <div class="score-editor">
         <span style="font-weight:600">我方:</span>
-        <input type="number" id="edit-our-score" value="${game.our_score ?? ourScore}" min="0" ${isFinished ? '' : 'readonly'} autocomplete="off">
+        <input type="number" id="edit-our-score" value="${game.our_score != null ? game.our_score : ourScore}" min="0" ${isFinished ? '' : 'readonly'} autocomplete="off">
         <span class="sep">:</span>
         <span style="font-weight:600">对手:</span>
         <input type="number" id="edit-opp-score" value="${game.opponent_score ?? ''}" min="0" placeholder="--" autocomplete="off">
         <button class="btn btn-sm btn-primary" id="btn-save-scores">更新比分</button>
+        ${isFinished && game.our_score != null ? '<button class="btn btn-sm btn-outline" id="btn-reset-our-score" title="切回自动模式：比分跟随球员数据走" style="margin-left:4px">重置</button>' : ''}
       </div>
       <div style="text-align:center;padding:8px 0 16px">
         ${isFinished
@@ -285,8 +290,9 @@ function renderFooter(game) {
       const opp = document.getElementById('edit-opp-score').value;
       const payload = { opponent_score: opp !== '' ? parseInt(opp) : null };
       if (isFinished) {
-        const our = parseInt(document.getElementById('edit-our-score').value);
-        if (!isNaN(our)) payload.our_score = our;
+        const ourRaw = document.getElementById('edit-our-score').value;
+        const our = ourRaw === '' ? null : parseInt(ourRaw);
+        if (our === null || !isNaN(our)) payload.our_score = our;
       }
       try {
         await api.updateGame(gameId, payload);
@@ -295,15 +301,24 @@ function renderFooter(game) {
       } catch (e) { toast('更新失败'); }
     });
 
+    const resetBtn = document.getElementById('btn-reset-our-score');
+    if (resetBtn) resetBtn.addEventListener('click', async () => {
+      if (!confirm('切回自动模式？我方比分将重新跟随球员数据走。')) return;
+      try {
+        await api.updateGame(gameId, { our_score: null });
+        toast('已切回自动模式');
+        refreshData();
+      } catch (e) { toast('操作失败'); }
+    });
+
     const finishBtn = document.getElementById('btn-finish-game');
     if (finishBtn) finishBtn.addEventListener('click', async () => {
       if (!confirm('确认结束本场比赛？')) return;
-      const ourVal = document.getElementById('edit-our-score').value;
       const oppVal = document.getElementById('edit-opp-score').value;
       try {
         await api.updateGame(gameId, {
           status: 'finished',
-          our_score: parseInt(ourVal) || computeOurScore(game.stats),
+          our_score: null,
           opponent_score: oppVal !== '' ? parseInt(oppVal) : game.opponent_score,
           ...(isAdmin ? {} : { recorder_name: claimName }),
         });
@@ -318,7 +333,8 @@ function renderFooter(game) {
 
     const deleteBtn = document.getElementById('btn-delete-game');
     if (deleteBtn) deleteBtn.addEventListener('click', () => {
-      const scoreLabel = game.our_score != null ? `（${game.our_score}:${game.opponent_score}）` : '';
+      const ourForShow = game.our_score != null ? game.our_score : (game.computed_our_score ?? computeOurScore(game.stats));
+      const scoreLabel = ourForShow != null && game.opponent_score != null ? `（${ourForShow}:${game.opponent_score}）` : '';
       if (!confirm(`确定删除「${game.game_date} vs ${game.opponent}」${scoreLabel}？\n此操作不可恢复，所有数据将丢失。`)) return;
       const adminPwd = sessionStorage.getItem('bb_admin_pwd') || '';
       api.deleteGame(gameId, adminPwd).then(() => {

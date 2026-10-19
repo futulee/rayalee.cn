@@ -348,8 +348,9 @@ async function loadGamesAdmin() {
       <div class="card" style="padding:8px 12px">
         <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:6px">共 ${games.length} 场比赛</div>
         ${games.map(g => {
-          const score = g.status === 'finished' && g.our_score != null && g.opponent_score != null
-            ? `<span style="font-weight:800;margin-left:6px">${g.our_score} : ${g.opponent_score}</span>` : '';
+          const ourForShow = g.our_score != null ? g.our_score : g.computed_our_score;
+          const score = g.status === 'finished' && ourForShow != null && g.opponent_score != null
+            ? `<span style="font-weight:800;margin-left:6px">${ourForShow} : ${g.opponent_score}</span>` : '';
           const status = g.status === 'finished'
             ? '<span style="font-size:.72rem;color:#16a34a;margin-left:6px">已结束</span>'
             : '<span style="font-size:.72rem;color:#f97316;margin-left:6px">进行中</span>';

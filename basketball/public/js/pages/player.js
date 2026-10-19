@@ -68,7 +68,7 @@ export async function render(main, params) {
               <div style="font-size:.8rem;color:var(--text-muted)">${g.game_date}</div>
             </div>
             <div style="text-align:right">
-              <div style="font-weight:700">${g.our_score ?? '--'} : ${g.opponent_score ?? '--'}</div>
+              <div style="font-weight:700">${g.our_score != null ? g.our_score : (g.computed_our_score ?? '--')} : ${g.opponent_score ?? '--'}</div>
               <div style="font-size:.8rem;color:var(--primary)">
                 ${g.pts_2pt * 2 + g.pts_3pt * 3 + g.pts_1pt}分
                 <span style="color:#2563eb">断${g.steals}</span>
