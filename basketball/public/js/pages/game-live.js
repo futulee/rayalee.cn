@@ -26,12 +26,25 @@ export async function render(main, params) {
     navActions.className = 'nav-actions';
     topbar.appendChild(navActions);
   }
-  navActions.innerHTML = '<a href="#" id="btn-back-ref" style="color:rgba(255,255,255,.85);text-decoration:none;font-size:.85rem;font-weight:500;padding:6px 8px">‹ 返回</a>';
+  const adminAuthed = sessionStorage.getItem('bb_admin_auth') === '1';
+  const alreadyEditing = sessionStorage.getItem('bb_admin_edit') === gameId;
+  const editBtnHtml = adminAuthed && !alreadyEditing
+    ? '<a href="#" id="btn-admin-edit" style="color:rgba(255,255,255,.85);text-decoration:none;font-size:.85rem;font-weight:500;padding:6px 10px;margin-right:4px;border:1px solid rgba(255,255,255,.3);border-radius:6px">编辑比赛</a>'
+    : '';
+  navActions.innerHTML = `${editBtnHtml}<a href="#" id="btn-back-ref" style="color:rgba(255,255,255,.85);text-decoration:none;font-size:.85rem;font-weight:500;padding:6px 8px">‹ 返回</a>`;
   const backBtn = document.getElementById('btn-back-ref');
   if (backBtn) {
     backBtn.addEventListener('click', (e) => {
       e.preventDefault();
       navigate(getReferrer());
+    });
+  }
+  const adminEditBtn = document.getElementById('btn-admin-edit');
+  if (adminEditBtn) {
+    adminEditBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      sessionStorage.setItem('bb_admin_edit', gameId);
+      location.reload();
     });
   }
 
