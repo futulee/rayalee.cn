@@ -131,6 +131,7 @@ function renderScoreHeader(game) {
   const ourInput = document.getElementById('edit-our-score');
   if (ourInput && document.activeElement !== ourInput && game.our_score == null) {
     ourInput.value = ourScore;
+    ourInput.dataset.original = ourScore;
   }
 }
 
@@ -247,7 +248,7 @@ function renderFooter(game) {
       ${infoFormHtml}
       <div class="score-editor">
         <span style="font-weight:600">我方:</span>
-        <input type="number" id="edit-our-score" value="${game.our_score != null ? game.our_score : ourScore}" min="0" ${isFinished ? '' : 'readonly'} autocomplete="off">
+        <input type="number" id="edit-our-score" value="${game.our_score != null ? game.our_score : ourScore}" data-original="${game.our_score != null ? game.our_score : ourScore}" min="0" ${isFinished ? '' : 'readonly'} autocomplete="off">
         <span class="sep">:</span>
         <span style="font-weight:600">对手:</span>
         <input type="number" id="edit-opp-score" value="${game.opponent_score ?? ''}" min="0" placeholder="--" autocomplete="off">
@@ -290,9 +291,13 @@ function renderFooter(game) {
       const opp = document.getElementById('edit-opp-score').value;
       const payload = { opponent_score: opp !== '' ? parseInt(opp) : null };
       if (isFinished) {
-        const ourRaw = document.getElementById('edit-our-score').value;
-        const our = ourRaw === '' ? null : parseInt(ourRaw);
-        if (our === null || !isNaN(our)) payload.our_score = our;
+        const ourInput = document.getElementById('edit-our-score');
+        const ourRaw = ourInput.value;
+        const original = ourInput.dataset.original;
+        if (ourRaw !== String(original)) {
+          const our = ourRaw === '' ? null : parseInt(ourRaw);
+          if (our === null || !isNaN(our)) payload.our_score = our;
+        }
       }
       try {
         await api.updateGame(gameId, payload);
