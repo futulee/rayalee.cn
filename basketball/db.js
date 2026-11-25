@@ -347,12 +347,23 @@ function getLeaderboard(type) {
 
 function getDashboard() {
   // Win/loss stats
+  // our_score may be NULL (auto-mode since 794f36c); fall back to computed_our_score
+  // (sum of player stats) so finished games without a manual score still count.
   const record = db.prepare(`
     SELECT
       COUNT(*) as total,
-      SUM(CASE WHEN our_score > opponent_score THEN 1 ELSE 0 END) as wins,
-      SUM(CASE WHEN our_score < opponent_score THEN 1 ELSE 0 END) as losses
-    FROM games WHERE status = 'finished' AND our_score IS NOT NULL AND opponent_score IS NOT NULL
+      SUM(CASE WHEN effective_our > opponent_score THEN 1 ELSE 0 END) as wins,
+      SUM(CASE WHEN effective_our < opponent_score THEN 1 ELSE 0 END) as losses
+    FROM (
+      SELECT g.our_score, g.opponent_score,
+        COALESCE(g.our_score, (
+          SELECT COALESCE(SUM(gs.pts_2pt*2 + gs.pts_3pt*3 + gs.pts_1pt), 0)
+          FROM game_stats gs WHERE gs.game_id = g.id
+        )) as effective_our
+      FROM games g
+      WHERE g.status = 'finished' AND g.opponent_score IS NOT NULL
+    )
+    WHERE effective_our IS NOT NULL
   `).get();
 
   // Top 3 points
