@@ -1,6 +1,6 @@
 import { api } from '../api.js?v=37';
-import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js?v=32';
-import { navigate, getReferrer } from '../router.js?v=32';
+import { toast, setPageTitle, lockBody, unlockBody, generateGameImage } from '../share.js?v=33';
+import { navigate, getReferrer } from '../router.js?v=33';
 
 let gameId, isRecorder = false, isAdmin = false, pollTimer = null;
 let claimName = '';

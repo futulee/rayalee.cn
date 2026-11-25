@@ -1,4 +1,4 @@
-import { route, start } from './router.js?v=32';
+import { route, start } from './router.js?v=33';
 import { render as homePage } from './pages/home.js?v=40';
 import { render as gamesPage } from './pages/games.js?v=40';
 import { render as gameLivePage, cleanup as gameLiveCleanup } from './pages/game-live.js?v=50';

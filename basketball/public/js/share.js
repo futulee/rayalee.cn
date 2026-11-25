@@ -4,19 +4,24 @@ export function setPageTitle(title) {
 
 // Body scroll lock
 let scrollY = 0;
+let locked = false;
 export function lockBody() {
+  if (locked) return;
   scrollY = window.scrollY;
   document.body.style.overflow = 'hidden';
   document.body.style.position = 'fixed';
   document.body.style.top = `-${scrollY}px`;
   document.body.style.width = '100%';
+  locked = true;
 }
 export function unlockBody() {
+  if (!locked) return;
   document.body.style.overflow = '';
   document.body.style.position = '';
   document.body.style.top = '';
   document.body.style.width = '';
   window.scrollTo(0, scrollY);
+  locked = false;
 }
 
 export function toast(msg) {

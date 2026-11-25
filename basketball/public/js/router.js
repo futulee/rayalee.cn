@@ -30,6 +30,14 @@ function handleRoute() {
   const hash = window.location.hash.slice(1) || '/';
   if (currentCleanup) currentCleanup();
 
+  // 切换路由时清理残留的 modal overlay 和 body scroll lock，
+  // 避免在 modal 打开状态下跳路由导致 body 被 position:fixed 锢死无法滚动
+  document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+
   const main = document.getElementById('app');
   main.innerHTML = '';
 

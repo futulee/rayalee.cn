@@ -1,6 +1,6 @@
 import { api } from '../api.js?v=38';
-import { navigate } from '../router.js?v=32';
-import { setPageTitle, toast, lockBody, unlockBody } from '../share.js?v=31';
+import { navigate } from '../router.js?v=33';
+import { setPageTitle, toast, lockBody, unlockBody } from '../share.js?v=33';
 
 let currentTab = sessionStorage.getItem('bb_admin_tab') || 'team';
 

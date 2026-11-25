@@ -1,6 +1,6 @@
 import { api } from '../api.js?v=36';
-import { navigate } from '../router.js?v=32';
-import { setPageTitle } from '../share.js?v=31';
+import { navigate } from '../router.js?v=33';
+import { setPageTitle } from '../share.js?v=33';
 
 export async function render(main) {
   setPageTitle('比赛列表');
