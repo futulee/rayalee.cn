@@ -28,6 +28,21 @@ export function start() {
 
 function handleRoute() {
   const hash = window.location.hash.slice(1) || '/';
+
+  // 站点访问门禁：无 token 且非管理员已登录时，跳转到密码输入页。
+  // /unlock 自身不拦截，避免死循环。
+  const adminAuthed = sessionStorage.getItem('bb_admin_auth') === '1';
+  const hasToken = !!localStorage.getItem('bb_site_token');
+  if (!adminAuthed && !hasToken && hash !== '/unlock') {
+    sessionStorage.setItem('bb_unlock_redirect', hash);
+    if (window.location.hash !== '#/unlock') {
+      window.location.hash = '/unlock';
+    } else {
+      renderUnlockFallback();
+    }
+    return;
+  }
+
   if (currentCleanup) currentCleanup();
 
   // 切换路由时清理残留的 modal overlay 和 body scroll lock，
@@ -52,6 +67,15 @@ function handleRoute() {
 
   // 404
   main.innerHTML = `<div class="empty"><div class="icon">🏀</div><p>页面未找到</p></div>`;
+}
+
+// Fallback: if user is already at #/unlock but no token, ensure the unlock page renders.
+// Handles direct loads on #/unlock and re-entries from the gate above.
+async function renderUnlockFallback() {
+  const main = document.getElementById('app');
+  main.innerHTML = '';
+  const mod = await import('./pages/unlock.js?v=39');
+  mod.render(main);
 }
 
 function matchRoute(pattern, hash) {

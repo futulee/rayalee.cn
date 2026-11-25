@@ -1,4 +1,4 @@
-import { api } from '../api.js?v=31';
+import { api } from '../api.js?v=39';
 import { setPageTitle, generatePlayerImage, toast, lockBody, unlockBody } from '../share.js?v=33';
 import { navigate, getReferrer } from '../router.js?v=33';
 

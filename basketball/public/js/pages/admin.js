@@ -1,4 +1,4 @@
-import { api } from '../api.js?v=38';
+import { api } from '../api.js?v=39';
 import { navigate } from '../router.js?v=33';
 import { setPageTitle, toast, lockBody, unlockBody } from '../share.js?v=33';
 
@@ -433,8 +433,22 @@ async function renderPassword(el) {
   el.innerHTML = '<div id="admin-password"></div>';
   const box = document.getElementById('admin-password');
   try {
-    const [rc, ac] = await Promise.all([api.getRecorderCode(), api.getAdminConfig()]);
+    const [rc, ac, sp] = await Promise.all([
+      api.getRecorderCode(),
+      api.getAdminConfig(),
+      api.getSitePassword(pwd()),
+    ]);
     box.innerHTML = `
+      <div class="card" style="padding:12px 14px;margin-bottom:10px">
+        <div style="font-weight:700;font-size:.9rem;margin-bottom:8px">🔐 站点访问密码</div>
+        <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:8px">当前访问密码：<span style="font-weight:700;color:var(--text)">${h(sp.password)}</span></div>
+        <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:8px">所有访客需输入此密码才能查看站点。修改后所有人需要重新输入。</div>
+        <div class="form-group">
+          <label class="form-label">新访问密码（至少 4 位）</label>
+          <input class="form-input" id="new-site-pwd" placeholder="留空则不修改" autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-save-site-pwd">保存访问密码</button>
+      </div>
       <div class="card" style="padding:12px 14px;margin-bottom:10px">
         <div style="font-weight:700;font-size:.9rem;margin-bottom:8px">🔑 记录员密码（记录码）</div>
         <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:8px">当前记录码：${h(rc.code)}</div>
@@ -460,6 +474,17 @@ async function renderPassword(el) {
         </div>
         <button class="btn btn-primary btn-sm" id="btn-save-admin">保存管理员账号</button>
       </div>`;
+
+    document.getElementById('btn-save-site-pwd').addEventListener('click', async () => {
+      const newPassword = document.getElementById('new-site-pwd').value;
+      if (!newPassword) { toast('请输入新访问密码'); return; }
+      if (newPassword.length < 4) { toast('新密码至少 4 位'); return; }
+      try {
+        await api.setSitePassword(pwd(), newPassword);
+        toast('访问密码已更新，所有人需重新输入');
+        renderPassword(el);
+      } catch (e) { toast(e.message); }
+    });
 
     document.getElementById('btn-save-recorder-code').addEventListener('click', async () => {
       const code = document.getElementById('new-recorder-code').value.trim();

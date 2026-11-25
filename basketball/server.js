@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const db = require('./db');
 
 db.init();
@@ -13,6 +14,64 @@ app.use('/basketball', express.static('public'));
 
 const API = '/basketball/api';
 const BACKUP_DIR = path.join(__dirname, 'data', 'backups');
+
+// --- Site access token store ---
+// token -> { expiresAt }
+const siteTokens = new Map();
+const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function issueSiteToken() {
+  const token = crypto.randomBytes(32).toString('hex');
+  siteTokens.set(token, { expiresAt: Date.now() + TOKEN_TTL_MS });
+  return token;
+}
+
+function isSiteTokenValid(token) {
+  if (!token) return false;
+  const entry = siteTokens.get(token);
+  if (!entry) return false;
+  if (entry.expiresAt < Date.now()) {
+    siteTokens.delete(token);
+    return false;
+  }
+  return true;
+}
+
+function clearAllSiteTokens() {
+  siteTokens.clear();
+}
+
+// Paths that don't require a site token (relative to API mount point,
+// because req.path under app.use(API, ...) strips the mount prefix)
+const TOKEN_EXEMPT_PATHS = new Set([
+  `/auth/site`,
+  `/auth/admin`,
+  `/auth/site/check`,
+  `/config/site-password/get`,
+]);
+
+// Middleware: require a valid site token for all /basketball/api/* requests,
+// unless the request carries the admin password in body.password (admin write ops)
+// or hits an exempt path (auth/site, auth/admin).
+app.use(`${API}`, (req, res, next) => {
+  const reqPath = req.path;
+  if (TOKEN_EXEMPT_PATHS.has(reqPath)) return next();
+
+  // Admin password bypass: admin write endpoints send password in body
+  if (req.body && req.body.password === db.getAdminPassword()) {
+    return next();
+  }
+
+  // Token can come from Authorization header or ?token= query (for SSE/image-style calls if needed)
+  const authHeader = req.headers.authorization || '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const queryToken = typeof req.query.token === 'string' ? req.query.token : null;
+  const token = bearerToken || queryToken;
+
+  if (isSiteTokenValid(token)) return next();
+
+  return res.status(401).json({ error: '需要访问密码', code: 'SITE_AUTH_REQUIRED' });
+});
 
 function backupTimestamp() {
   const d = new Date();
@@ -176,6 +235,28 @@ app.post(`${API}/auth/admin`, (req, res) => {
   res.status(403).json({ error: '用户名或密码错误' });
 });
 
+// --- Site access auth ---
+
+app.post(`${API}/auth/site`, (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: '请输入访问密码' });
+  if (password !== db.getSitePassword()) {
+    return res.status(403).json({ error: '访问密码错误' });
+  }
+  const token = issueSiteToken();
+  res.json({ token, expiresIn: TOKEN_TTL_MS });
+});
+
+app.get(`${API}/auth/site/check`, (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (isSiteTokenValid(token)) {
+    const entry = siteTokens.get(token);
+    return res.json({ valid: true, expiresIn: Math.max(0, entry.expiresAt - Date.now()) });
+  }
+  res.status(401).json({ valid: false });
+});
+
 app.get(`${API}/config/admin`, (_req, res) => {
   res.json({ username: db.getAdminUsername() });
 });
@@ -187,6 +268,23 @@ app.put(`${API}/config/admin`, (req, res) => {
   db.setAdminUsername(username);
   if (password) db.setAdminPassword(password);
   res.json({ username: db.getAdminUsername() });
+});
+
+// --- Site access password management (admin only) ---
+
+app.post(`${API}/config/site-password/get`, (req, res) => {
+  const { password } = req.body;
+  if (password !== db.getAdminPassword()) return res.status(403).json({ error: '管理员密码错误' });
+  res.json({ password: db.getSitePassword() });
+});
+
+app.put(`${API}/config/site-password`, (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (currentPassword !== db.getAdminPassword()) return res.status(403).json({ error: '管理员密码错误' });
+  if (!newPassword || newPassword.length < 4) return res.status(400).json({ error: '新密码至少 4 位' });
+  db.setSitePassword(newPassword);
+  clearAllSiteTokens(); // force everyone to re-enter
+  res.json({ ok: true });
 });
 
 app.post(`${API}/games/:id/claim`, (req, res) => {

@@ -75,6 +75,10 @@ function init() {
   if (!ap) {
     db.prepare("INSERT INTO config (key, value) VALUES ('admin_password', '318521')").run();
   }
+  const sp = db.prepare("SELECT value FROM config WHERE key = 'site_password'").get();
+  if (!sp) {
+    db.prepare("INSERT INTO config (key, value) VALUES ('site_password', 'champ2026')").run();
+  }
 
   // Player default sort order
   try { db.exec("ALTER TABLE players ADD COLUMN sort_order INTEGER"); } catch (e) {}
@@ -285,6 +289,15 @@ function setAdminPassword(pwd) {
   db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('admin_password', ?)").run(pwd);
 }
 
+function getSitePassword() {
+  const row = db.prepare("SELECT value FROM config WHERE key = 'site_password'").get();
+  return row ? row.value : 'champ2026';
+}
+
+function setSitePassword(pwd) {
+  db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('site_password', ?)").run(pwd);
+}
+
 // --- Stats ---
 
 function updateStat(gameId, playerId, field, delta) {
@@ -416,6 +429,8 @@ module.exports = {
   setAdminUsername,
   getAdminPassword,
   setAdminPassword,
+  getSitePassword,
+  setSitePassword,
   updateStat,
   getLeaderboard,
   getDashboard,

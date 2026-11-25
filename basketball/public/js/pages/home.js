@@ -1,4 +1,4 @@
-import { api } from '../api.js?v=36';
+import { api } from '../api.js?v=39';
 import { navigate } from '../router.js?v=33';
 import { setPageTitle } from '../share.js?v=33';
 
